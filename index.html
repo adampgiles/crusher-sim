@@ -35,13 +35,60 @@ canvas{flex:1;min-height:0;width:100%;object-fit:contain;background:#1a1d22}
 #hds:before{content:'Head';color:var(--mut);font-size:12px;margin-right:2px}
 #hds button{flex:none;background:#0004;color:var(--fg);border:1px solid #fff2;border-radius:14px;padding:6px 11px;font-size:12px}
 #hds button.sel{background:var(--ac);color:#000}
+/* ===== professional layout: portrait stack, landscape side panel ===== */
+:root{--bg:#0e1014;--pn:#171a20;--pn2:#212630;--bd:#2b313b;--fg:#e9ebef;--mut:#8a919c;--ac:#f2a900;--acf:#171000;--ok:#4ab36b;--bad:#e0443a;color-scheme:dark light}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#e5e8ee;--pn:#ffffff;--pn2:#eef1f6;--bd:#d0d6df;--fg:#161a21;--mut:#586270}}
+html,body{height:100%}
+button{font-family:inherit}
+body{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto auto auto auto;grid-template-areas:"hud" "cv" "sub" "hds" "chips" "dp" "ctl";background:var(--bg);color:var(--fg);font:14px/1.35 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);overflow:hidden;overscroll-behavior:none}
+#hud{grid-area:hud;display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--pn);border-bottom:1px solid var(--bd)}
+#hud b{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--ac);white-space:nowrap}
+#fb{flex:1;height:10px;border-radius:5px;background:var(--pn2);border:1px solid var(--bd);overflow:hidden}
+#fb i{display:block;height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,var(--ok),var(--ac) 60%,var(--bad))}
+#fv{min-width:112px;text-align:right;font:600 12px ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;color:var(--fg)}
+#sub{grid-area:sub;padding:8px 14px;background:var(--pn);color:var(--mut);font-size:12px;min-height:34px;border-top:1px solid var(--bd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+canvas{grid-area:cv;display:block;width:100%;height:100%;min-width:0;min-height:0;object-fit:contain;background:#0b0d10}
+#hds,#chips{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pn);border-top:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
+#hds{grid-area:hds}#chips{grid-area:chips}
+#hds::-webkit-scrollbar,#chips::-webkit-scrollbar,#dm::-webkit-scrollbar{display:none}
+#hds::before,#chips::before{content:attr(data-l);flex:none;margin:0 4px 0 0;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+#chips button,#hds button,#dm button{flex:none;border:1px solid var(--bd);background:var(--pn2);color:var(--fg);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:transform .08s,background .15s}
+#chips button:active,#hds button:active,#dm button:active{transform:scale(.95);background:var(--ac);color:var(--acf)}
+#hds button.sel,#dm button.sel{background:var(--ac);color:var(--acf);border-color:var(--ac)}
+#dp{grid-area:dp;display:flex;flex-direction:column;gap:10px;padding:12px 14px;background:var(--pn);border-top:1px solid var(--bd)}
+#dp[hidden]{display:none}
+#dm{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;scrollbar-width:none}
+#da{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+#da button{padding:13px 4px;border:1px solid var(--bd);border-radius:12px;background:var(--pn2);color:var(--fg);font-weight:600;font-size:13px}
+#da .pri{background:var(--ac);color:var(--acf);border-color:var(--ac)}
+#ctl{grid-area:ctl;display:flex;gap:10px;padding:12px 14px;background:var(--pn);border-top:1px solid var(--bd)}
+#ctl button{flex:1;min-height:56px;border:1px solid var(--bd);border-radius:14px;background:var(--pn2);color:var(--fg);font-size:14px;font-weight:700;letter-spacing:.04em;touch-action:none;-webkit-user-select:none;user-select:none}
+#ctl button.pri{flex:1.8;background:linear-gradient(#f7b92a,#e29a00);color:var(--acf);border-color:#c98900;box-shadow:0 3px 0 #9a6a00}
+#ctl button.on{transform:translateY(2px);box-shadow:none;filter:brightness(1.12)}
+#ctl #rs,#ctl #mu{flex:.55;font-size:13px}
+@media (min-aspect-ratio:1/1){
+ body{grid-template-columns:minmax(290px,370px) minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr) auto auto;grid-template-areas:"hud cv" "sub cv" "hds cv" "chips cv" "dp cv" "ctl cv"}
+ #sub{white-space:normal;border-top:0}
+ #hds{flex-wrap:wrap;overflow-x:hidden}
+ #chips{flex-wrap:wrap;align-content:flex-start;overflow-x:hidden;overflow-y:auto}
+ #hds::before,#chips::before{flex-basis:100%;margin:0}
+ #ctl{display:grid;grid-template-columns:1fr 1fr}
+ #ctl #dn{grid-column:1/-1;order:-1;min-height:64px}
+ #ctl #rs,#ctl #mu{flex:none}
+ canvas{border-left:1px solid var(--bd)}
+}
+@media (max-height:440px){
+ #hud{padding:6px 12px}#sub{padding:5px 12px;min-height:26px}
+ #hds,#chips{padding:7px 12px}#ctl{padding:8px 12px;gap:8px}#ctl button{min-height:42px}#ctl #dn{min-height:48px}
+ #chips button,#hds button{padding:7px 11px;font-size:12px}
+}
 </style></head><body>
 <div id="hud"><b>HYDRAULIC PRESS</b><div id="fb"><i></i></div><span id="fv">0 kN</span></div>
 <div id="sub">Drag objects to move them, then hold PRESS.</div>
 <canvas id="c" width="360" height="520"></canvas>
 <div id="dp" hidden><div id="dm"></div><div id="da"><button id="dh">Hollow: off</button><button id="dcl">Clear</button><button id="dx">Cancel</button><button id="dd" class="pri">Drop it</button></div></div>
-<div id="chips"></div>
-<div id="hds"></div>
+<div id="chips" data-l="Objects"></div>
+<div id="hds" data-l="Press head"></div>
 <div id="ctl"><button id="up">▲ RAISE</button><button id="dn" class="pri">▼ PRESS</button><button id="rs">RESET</button><button id="mu">🔊</button></div>
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
