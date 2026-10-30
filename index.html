@@ -50,6 +50,7 @@ body{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto mi
 canvas{grid-area:cv;display:block;width:100%;height:100%;min-width:0;min-height:0;object-fit:contain;background:#0b0d10}
 #hds,#chips{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pn);border-top:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
 #hds{grid-area:hds}#chips{grid-area:chips}
+.gl{flex:none;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);padding:0 2px 0 8px}
 #hds::-webkit-scrollbar,#chips::-webkit-scrollbar,#dm::-webkit-scrollbar{display:none}
 #hds::before,#chips::before{content:attr(data-l);flex:none;margin:0 4px 0 0;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
 #chips button,#hds button,#dm button{flex:none;border:1px solid var(--bd);background:var(--pn2);color:var(--fg);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:transform .08s,background .15s}
@@ -76,6 +77,7 @@ canvas{grid-area:cv;display:block;width:100%;height:100%;min-width:0;min-height:
  #ctl #dn{grid-column:1/-1;order:-1;min-height:64px}
  #ctl #rs,#ctl #mu{flex:none}
  canvas{border-left:1px solid var(--bd)}
+ .gl{flex-basis:100%;padding:8px 0 0}
 }
 @media (max-height:440px){
  #hud{padding:6px 12px}#sub{padding:5px 12px;min-height:26px}
@@ -109,9 +111,15 @@ const M={
  steel:{k:.95,ten:3,yl:9,fl:.02,sm:1,ys:.6},
  skin:{k:.4,ten:.3,yl:.08,fl:.06,jc:1},
  wood:{k:.8,ten:.05,cmp:.07,yl:9,fl:0,du:1,sm:1},
- jelly:{k:.3,ten:.5,yl:.1,fl:.05,jc:1}
+ jelly:{k:.3,ten:.5,yl:.1,fl:.05,jc:1},
+ iron:{k:.9,ten:.03,cmp:.05,yl:9,fl:0,sm:1},
+ ceramic:{k:.88,ten:.035,cmp:.055,yl:9,fl:0,gl:.6,sm:1},
+ paper:{k:.7,ten:.06,cmp:.1,yl:9,fl:0,du:1,sm:1},
+ candy:{k:.5,ten:.08,cmp:.12,yl:9,fl:0,gl:.5,sm:1},
+ coin:{k:.95,ten:3,yl:9,fl:0,sm:1},
+ tnt:{k:.5,ten:.12,yl:.05,fl:.05,du:1}
 };
-const RHO={rubber:1.1,rind:.9,flesh:.95,shell:2.4,goo:1.03,glass:2.5,metal:2.7,stone:2.0,steel:7.8,skin:1,wood:.7,jelly:1.05},MU={rubber:.9,glass:.2,steel:.3,stone:.6,metal:.4,rind:.5,flesh:.6,goo:.2,skin:.5,shell:.3};
+const RHO={rubber:1.1,rind:.9,flesh:.95,shell:2.4,goo:1.03,glass:2.5,metal:2.7,stone:2.0,steel:7.8,skin:1,wood:.7,jelly:1.05,iron:7.2,ceramic:2.4,paper:.8,candy:1.4,coin:9,tnt:1.6},MU={rubber:.9,glass:.2,steel:.3,stone:.6,metal:.4,rind:.5,flesh:.6,goo:.2,skin:.5,shell:.3};
 const RR={rubber:.48,rind:.46,flesh:.48,goo:.49,skin:.47,steel:.46};
 for(const k in M){M[k].rho=RHO[k];M[k].mu=MU[k]||.4;M[k].rr=RR[k]||.42;M[k].cmp=M[k].cmp||9}
 const el=(a,b)=>(x,y)=>(x/a)**2+(y/b)**2<=1;
@@ -140,15 +148,76 @@ const O={
 };
 const INFO={ball:'0.4 kg, elastic, rebounds',melon:'~5 kg, rind bursts at roughly 0.3 kN',egg:'60 g, shell cracks at roughly 40 N',bottle:'0.4 kg, glass fails at several kN',can:'full can buckles at roughly 1 kN, pressurised',brick:'2.5 kg, crushes at roughly 60 kN',bulb:'30 g, thin brittle glass',tomato:'150 g, skin splits at roughly 20 N',steel:'7.8x water density, yields far above this press'};
 const chips=document.getElementById('chips');
-for(const k in O){const b=document.createElement('button');b.textContent=O[k].e+' '+O[k].n;b.onclick=()=>{initAudio();spawn(k)};chips.appendChild(b)}
+// ---- new objects, grouped into sections ----
+const rc=(a,b)=>(x,y)=>Math.abs(x)<a&&Math.abs(y)<b;
+const sweets=(n,R,rad,sx=1,sy=.9)=>{const a=[];for(let i=0;i<n;i++){const t=i*2.4+1,d=Math.sqrt((i+.5)/n)*R;a.push([Math.cos(t)*d*sx,Math.sin(t)*d*sy,rad,i+1,(i*53)%360])}return a};
+const fillOf=(sw,mat,sat,li,hue)=>(x,y)=>{for(const w of sw)if(Math.hypot(x-w[0],y-w[1])<w[2])return[hue==null?w[4]:hue,sat,li,mat,w[3]];return null};
+Object.assign(O,{
+ orange:{n:'Orange',e:'🍊',s:7,hb:26,f:el(26,26),c:(x,y)=>rr(x,y,26,26)>.85?[28,95,50,'skin']:[32,95,55,'flesh']},
+ apple:{n:'Apple',e:'🍎',s:7,hb:23,f:el(25,23),c:(x,y)=>rr(x,y,25,23)>.88?[2,75,42,'skin']:[50,60,88,'flesh']},
+ pumpkin:{n:'Pumpkin',e:'🎃',s:9,hb:40,f:el(50,40),c:(x,y)=>rr(x,y,50,40)>.88?[26,90,48,'rind']:Math.random()<.03?[48,40,80,'flesh']:[30,90,55,'flesh']},
+ jelly:{n:'Jelly',e:'🍮',s:7,hb:20,f:rc(24,20),c:()=>[300,60,60,'jelly']},
+ mug:{n:'Mug',e:'☕',s:5,hb:20,hol:2,f:(x,y)=>(Math.abs(x)<18&&Math.abs(y)<20)||(x>=14&&Math.hypot(x-20,y)<14&&Math.hypot(x-20,y)>6),c:()=>[200,15,92,'ceramic']},
+ plate:{n:'Plate',e:'🍽️',s:4,hb:5,f:rc(36,5),c:()=>[210,10,95,'ceramic']},
+ phone:{n:'Phone',e:'📱',s:5,hb:4,f:rc(32,4),c:(x,y)=>y<0?[220,30,12,'glass']:[210,8,60,'metal']},
+ crate:{n:'Wooden crate',e:'📦',s:6,hb:28,hol:2.2,f:rc(32,28),c:(x,y)=>[28,50,Math.abs(Math.round(y/9))%2?38:32,'wood']},
+ concrete:{n:'Concrete block',e:'🧱',s:6,hb:20,hol:2.2,f:rc(36,20),c:()=>[0,0,55,'stone']},
+ log:{n:'Log',e:'🪵',s:5,hb:13,f:rc(44,13),c:()=>[25,45,30,'wood']},
+ ice:{n:'Ice block',e:'🧊',s:5,hb:22,f:rc(22,22),c:()=>[195,60,80,'glass']},
+ anvil:{n:'Anvil',e:'⚒️',s:5,hb:22,f:(x,y)=>(y>=-22&&y<-6&&Math.abs(x)<38)||(y>=-6&&y<12&&Math.abs(x)<14)||(y>=12&&y<=22&&Math.abs(x)<26),c:()=>[220,10,28,'steel']},
+ dumbbell:{n:'Dumbbell',e:'🏋️',s:5,hb:16,f:(x,y)=>Math.hypot(Math.abs(x)-34,y)<16||(Math.abs(x)<34&&Math.abs(y)<5),c:()=>[215,8,34,'steel']},
+ cbomb:{n:'Candy bomb',e:'🍬',s:5,hb:40,hol:2,f:el(40,40),c:()=>[300,50,28,'iron'],fill:fillOf(sweets(7,24,7.5),'candy',85,58)},
+ pinata:{n:'Piñata',e:'🪅',s:5,hb:38,hol:1.8,f:el(48,38),c:(x)=>[(Math.round(x/10)*40+330)%360,80,60,'paper'],fill:fillOf(sweets(9,30,7.5,1.1),'candy',85,58)},
+ piggy:{n:'Piggy bank',e:'🐷',s:5,hb:34,hol:1.8,f:el(46,34),c:()=>[345,60,80,'ceramic'],fill:fillOf(sweets(8,26,6.5,1.1),'coin',90,52,45)},
+ chest:{n:'Treasure chest',e:'💰',s:5,hb:30,hol:2,f:rc(40,30),c:(x,y)=>[28,60,Math.abs(y)>24||Math.abs(x)>34?30:36,'wood'],fill:fillOf(sweets(10,30,6.5,1.2,.8),'coin',90,52,45)},
+ jar:{n:'Marble jar',e:'🫙',s:4.5,hb:34,hol:1.8,f:rc(26,34),c:()=>[190,30,80,'glass'],fill:fillOf(sweets(6,18,8,1,1.3),'glass',70,55)},
+ bomb:{n:'Bomb',e:'💣',s:5,hb:34,boom:1,hol:2,f:el(34,34),c:()=>[220,8,20,'iron'],fill:()=>[18,85,50,'tnt',1]},
+ dynamite:{n:'Dynamite',e:'🧨',s:5,hb:24,boom:1,f:(x,y)=>Math.abs(y)<24&&(Math.abs(x+16)<7||Math.abs(x)<7||Math.abs(x-16)<7),c:(x)=>[4,80,45,'tnt',x<-9?1:x<9?2:3]}
+});
+// ---- redesigned silhouettes: every object stands upright and is recognisable ----
+const rrf=(a,b,r)=>(x,y)=>{const u=Math.max(Math.abs(x)-(a-r),0),v=Math.max(Math.abs(y)-(b-r),0);return u*u+v*v<=r*r};
+const ang=(x,y)=>Math.atan2(y,x);
+Object.assign(O,{
+ orange:{n:'Orange',e:'🍊',s:7,hb:26,f:(x,y)=>x*x+y*y<=676||(Math.abs(x)<3&&y<-24&&y>-30)||(x>0&&x<12&&y<-24&&y>-29),c:(x,y)=>y<-23?[110,60,32,'skin']:rr(x,y,26,26)>.85?[28,95,50,'skin']:[Math.floor((ang(x,y)+3.15)/.785)%2?32:37,95,55,'flesh']},
+ apple:{n:'Apple',e:'🍎',s:7,hb:23,f:(x,y)=>(x/25)**2+(y/23)**2<=1||(Math.abs(x)<2.5&&y<-20&&y>-31)||(x>=3&&x<14&&y>-31&&y<-24),c:(x,y)=>y<-23?(Math.abs(x)<2.5?[25,50,25,'wood']:[110,60,35,'skin']):rr(x,y,25,23)>.88?[2,75,42,'skin']:[50,60,88,'flesh']},
+ pumpkin:{n:'Pumpkin',e:'🎃',s:9,hb:38,f:(x,y)=>(x/50)**2+(y/38)**2<=1||(Math.abs(x)<5&&y<-34&&y>-46),c:(x,y)=>y<-34?[100,40,28,'wood']:rr(x,y,50,38)>.86?(Math.abs(Math.sin(ang(x,y)*5))>.7?[24,90,40,'rind']:[28,92,52,'rind']):Math.random()<.03?[48,40,80,'flesh']:[30,90,55,'flesh']},
+ jelly:{n:'Pudding',e:'🍮',s:6,hb:20,f:(x,y)=>(Math.abs(x)<17+(y+20)*.2&&y>-20&&y<20)||Math.hypot(x,y+25)<5,c:(x,y)=>y<-20?[355,90,45,'skin']:y<-13?[28,85,30,'jelly']:[45,85,62,'jelly']},
+ egg:{n:'Egg',e:'🥚',s:4.5,hb:28,f:(x,y)=>{const t=y/28;return (x/(21*(1+.15*t)))**2+t*t<=1},c:(x,y)=>{const r=rr(x,y,21,28);return r>.8?[40,35,90,'shell']:r<.42?[44,95,52,'goo']:[50,40,93,'goo']}},
+ ball:{n:'Basketball',e:'🏀',s:7,hb:42,f:el(42,42),c:(x,y)=>(Math.abs(x)<2.5||Math.abs(y)<2.5||Math.abs(Math.hypot(Math.abs(x)-44,y)-30)<2.5||Math.hypot(x,y)>40)?[20,40,10,'rubber']:[22,90,48,'rubber']},
+ can:{n:'Soda can',e:'🥫',s:4.5,hb:38,hol:2.2,liq:'#5a2d14',f:rc(22,38),c:(x,y)=>Math.abs(y)>33?[210,8,75,'metal']:Math.abs(y-5*Math.sin(x/5))<4?[0,0,95,'metal']:[0,78,42,'metal']},
+ bottle:{n:'Glass bottle',e:'🍾',s:4.5,hb:58,hol:2.2,liq:'#7cc4ff',f:(x,y)=>(Math.abs(x)<21&&y>=-14&&y<=58)||(y<-14&&y>=-30&&Math.abs(x)<8+(y+30)/16*13)||(Math.abs(x)<8&&y>=-62&&y<-30),c:(x,y)=>y<-56?[0,70,42,'metal']:(y>8&&y<40&&Math.abs(x)<22)?[45,20,92,'glass']:[135,45,34,'glass']},
+ bulb:{n:'Light bulb',e:'💡',s:4,hb:40,hol:2.2,f:(x,y)=>(x*x+(y+18)**2<=26*26&&y<10)||(Math.abs(x)<9&&y>=0&&y<24)||(Math.abs(x)<10&&y>=24&&y<=36)||(Math.abs(x)<5&&y>36&&y<=40),c:(x,y)=>y>36?[40,10,25,'metal']:y>=22?[40,8,Math.floor(y/4)%2?58:44,'metal']:[50,30,90,'glass']},
+ mug:{n:'Mug',e:'☕',s:5,hb:20,hol:2,f:(x,y)=>(Math.abs(x)<18&&Math.abs(y)<20)||(x>=14&&Math.hypot(x-20,y)<14&&Math.hypot(x-20,y)>6),c:(x,y)=>Math.abs(y)<4?[0,70,50,'ceramic']:[200,10,94,'ceramic']},
+ phone:{n:'iPhone',e:'📱',s:6,hb:40,f:rrf(20,40,6),c:(x,y)=>{const ax=Math.abs(x),ay=Math.abs(y);if(ax>16||ay>36)return[210,8,72,'metal'];if(y<-30&&ax<6)return[0,0,4,'glass'];if(y>31&&ax<7)return[0,0,95,'glass'];return[240-(y+36)*1.2,60,22+(y+36)*.5,'glass']}},
+ teapot:{n:'Teapot',e:'🫖',s:6,hb:26,f:(x,y)=>(x/26)**2+((y-6)/20)**2<=1||(Math.abs(x)<11&&y>-19&&y<-12)||Math.hypot(x,y+22)<4||(x>=22&&x<=42&&Math.abs(y-(10-(x-22)*.9))<4)||(x<-22&&Math.hypot(x+30,y-4)<13&&Math.hypot(x+30,y-4)>6),c:(x,y)=>Math.abs(y-6)<3?[215,60,50,'ceramic']:[200,15,92,'ceramic']},
+ brick:{n:'Brick wall',e:'🧱',s:6,hb:28,f:rc(44,28),c:(x,y)=>{const row=Math.floor((y+28)/14),off=row%2?0:11,u=x+44+off;return ((y+28)%14<4||u%22<4)?[40,8,70,'stone']:[11,55,34+(row*7+Math.floor(u/22)*5)%6,'stone']}},
+ crate:{n:'Wooden crate',e:'📦',s:6,hb:28,hol:2.2,f:rc(32,28),c:(x,y)=>(Math.abs(x)>28||Math.abs(y)>24||Math.abs(Math.abs(x)-Math.abs(y)*1.25)<5)?[28,55,26,'wood']:[30,50,Math.abs(Math.round(y/9))%2?40:35,'wood'],fill:(x,y)=>Math.abs(Math.abs(x)-Math.abs(y)*1.25)<4?[28,55,30,'wood']:null},
+ concrete:{n:'Cinder block',e:'🟩',s:6,hb:22,f:(x,y)=>Math.abs(x)<40&&Math.abs(y)<22&&!((Math.abs(x-16)<9||Math.abs(x+16)<9)&&Math.abs(y)<13),c:()=>[0,0,50+Math.random()*8,'stone']},
+ log:{n:'Log',e:'🪵',s:5,hb:34,f:rc(20,34),c:(x,y)=>y<-28?[35,50,Math.round(Math.hypot(x,(y+30)*2)/4)%2?62:54,'wood']:[25,45,25+(Math.abs(Math.round(x/3))%2)*6,'wood']},
+ ice:{n:'Ice block',e:'🧊',s:5,hb:22,f:rc(22,22),c:(x,y)=>Math.abs(x+y+8)<3?[190,30,95,'glass']:[195,60,80,'glass']},
+ steel:{n:'Bowling ball',e:'🎳',s:6,hb:32,f:el(32,32),c:(x,y)=>(Math.hypot(x-6,y+14)<4||Math.hypot(x+6,y+14)<4||Math.hypot(x,y+4)<4)?[0,0,4,'steel']:[225,70,26+Math.floor(Math.abs(x+y)/6)%3*5,'steel']},
+ anvil:{n:'Anvil',e:'⚒️',s:5,hb:22,f:(x,y)=>(y>=-22&&y<-8&&x>=-30&&x<=34)||(x<-30&&x>=-54&&Math.abs(y+15)<2+(x+54)/24*5)||(Math.abs(x)<12&&y>=-8&&y<10)||(Math.abs(x)<26&&y>=10&&y<=22),c:(x,y)=>y<-19?[220,8,45,'steel']:[220,8,28,'steel']},
+ dumbbell:{n:'Dumbbell',e:'🏋️',s:5,hb:16,f:(x,y)=>Math.hypot(Math.abs(x)-34,y)<16||(Math.abs(x)<34&&Math.abs(y)<5),c:(x)=>Math.abs(x)<18?[215,8,60,'steel']:[215,8,28,'steel']},
+ cbomb:{n:'Candy bomb',e:'🍬',s:5,hb:40,hol:2,f:(x,y)=>Math.hypot(x,y)<=40||(Math.abs(x)<7&&y<-36&&y>-42)||(Math.abs(x)<2.5&&y<=-42&&y>-52),c:(x,y)=>y<-42?[28,50,35,'wood']:y<-36?[0,0,60,'metal']:((((x%16)+16)%16-8)**2+(((y%16)+16)%16-8)**2<16?[330,85,65,'iron']:[300,30,25,'iron']),fill:fillOf(sweets(7,24,7.5),'candy',85,58)},
+ pinata:{n:'Piñata',e:'🪅',s:5,hb:40,hol:1.8,f:(x,y)=>Math.hypot(x,y)<34+10*Math.cos(5*(ang(x,y)+1.5708)),c:(x,y)=>[(Math.floor((ang(x,y)+3.15)/.63)*55)%360,85,60,'paper'],fill:fillOf(sweets(6,15,6),'candy',85,58)},
+ piggy:{n:'Piggy bank',e:'🐷',s:5,hb:38,hol:1.8,f:(x,y)=>(x/40)**2+(y/30)**2<=1||Math.hypot(x-44,y-6)<10||(Math.abs(x-22)<6&&y>=24&&y<38)||(Math.abs(x+22)<6&&y>=24&&y<38)||(x>=14&&x<=26&&y<=-24&&y>-36)||Math.hypot(x+44,y+4)<4,c:(x,y)=>Math.hypot(x-26,y+8)<3?[0,0,5,'ceramic']:(Math.abs(x)<10&&Math.abs(y+28)<2)?[0,0,10,'ceramic']:x>34?[345,60,70,'ceramic']:[345,65,82,'ceramic'],fill:fillOf(sweets(6,20,6,1.3,.7),'coin',90,52,45)},
+ chest:{n:'Treasure chest',e:'💰',s:5,hb:30,hol:2,f:(x,y)=>(Math.abs(x)<40&&y>=0&&y<30)||((x/40)**2+(y/24)**2<=1&&y<0),c:(x,y)=>(Math.abs(x)<6&&y>-6&&y<10)?[48,90,52,'coin']:Math.abs(Math.abs(x)-28)<3?[45,60,45,'metal']:Math.abs(y)<1.5?[25,50,18,'wood']:[28,55,Math.abs(Math.round(y/8))%2?32:38,'wood'],fill:fillOf(sweets(10,30,6.5,1.2,.8),'coin',90,52,45)},
+ jar:{n:'Marble jar',e:'🫙',s:4.5,hb:34,hol:1.8,f:(x,y)=>(Math.abs(x)<26&&y>-24&&y<34)||(Math.abs(x)<18&&y>-32&&y<=-24)||(Math.abs(x)<21&&y>-40&&y<=-32),c:(x,y)=>y<-32?[45,70,55,'metal']:[190,30,80,'glass'],fill:fillOf(sweets(6,16,8,1,1.4),'glass',70,55)},
+ bomb:{n:'Bomb',e:'💣',s:5,hb:40,boom:1,hol:2,f:(x,y)=>Math.hypot(x,y-6)<=34||(Math.abs(x)<8&&y<-26&&y>-34)||(Math.abs(x-1)<2.5&&y<=-34&&y>-52),c:(x,y)=>y<-46?[30,100,55,'tnt']:y<-34?[30,40,35,'wood']:y<-26?[220,8,40,'iron']:Math.hypot(x+14,y+6)<7?[220,10,60,'iron']:[220,10,27,'iron'],fill:()=>[18,85,50,'tnt',1]},
+ dynamite:{n:'Dynamite',e:'🧨',s:5,hb:26,boom:1,f:(x,y)=>(Math.abs(y)<26&&(Math.abs(x+16)<7||Math.abs(x)<7||Math.abs(x-16)<7))||(Math.abs(x)<2.5&&y<=-26&&y>-40),c:(x,y)=>{const g=x<-9?1:x<9?2:3;return y<-34?[30,100,55,'tnt',2]:y<-26?[30,40,35,'wood',2]:Math.abs(y)<4?[0,0,12,'tnt',g]:y<-20?[4,80,58,'tnt',g]:[4,80,45,'tnt',g]}}
+});
+Object.assign(INFO,{ball:'0.6 kg, bouncy rubber',steel:'solid, will not break',brick:'brick wall section',jelly:'wobbly dessert',teapot:'ceramic, brittle',phone:'glass front, metal frame',concrete:'hollow-core block',log:'upright hardwood',cbomb:'iron shell packed with sweets'});
+Object.assign(INFO,{orange:'~200 g',apple:'~180 g',pumpkin:'~5 kg, thick rind',jelly:'wobbly dessert',mug:'ceramic, brittle',plate:'thin ceramic',phone:'glass front, metal back',crate:'wooden planks',concrete:'hollow block',log:'dense hardwood',ice:'brittle ice',anvil:'solid steel, will not break',dumbbell:'solid steel',cbomb:'iron shell packed with sweets',pinata:'paper shell full of sweets',piggy:'ceramic bank full of coins',chest:'wooden chest full of gold',jar:'glass jar of marbles',bomb:'DANGER: explodes when the casing cracks',dynamite:'DANGER: unstable'});
+const OGROUPS=[['Food',['melon','orange','apple','pumpkin','tomato','egg','jelly']],['Everyday',['ball','can','bottle','bulb','mug','teapot','phone']],['Hard',['brick','crate','concrete','log','ice','steel','anvil','dumbbell']],['Containers',['cbomb','pinata','piggy','chest','jar']],['Explosive',['bomb','dynamite']]];
+for(const [gn,ks] of OGROUPS){const l=document.createElement('span');l.className='gl';l.textContent=gn;chips.appendChild(l);for(const k of ks){const b=document.createElement('button');b.textContent=O[k].e+' '+O[k].n;b.onclick=()=>{initAudio();spawn(k)};chips.appendChild(b)}}
 
 function spawn(k){
  const o=O[k],s=o.s*.65,t=(o.hol||0)*s,R=o.R||72,ps=[],cxp=o.at?o.at[0]:XL+60+Math.random()*(XR-XL-120),cyp=o.at?o.at[1]:FY-o.hb-6;
  for(let y=-R;y<=R;y+=s)for(let x=-R;x<=R;x+=s){
   if(!o.f(x,y))continue;
-  if(t&&o.f(x+t,y)&&o.f(x-t,y)&&o.f(x,y+t)&&o.f(x,y-t))continue;
-  const c=o.c(x,y),m=M[c[3]||o.m];
-  const p={x:cxp+x,y:cyp+y,ox:cxp+x,oy:cyp+y,r:s*(m.rr||.42),s,rx:x,ry:y,m,w:36/(m.rho*s*s),liq:o.liq,pk:0,col:`hsl(${c[0]},${c[1]}%,${c[2]+Math.random()*6-3}%)`,s};
+  const inn=t&&o.f(x+t,y)&&o.f(x-t,y)&&o.f(x,y+t)&&o.f(x,y-t);let fc=null;if(inn){fc=o.fill&&o.fill(x,y);if(!fc)continue}
+  const c=fc||o.c(x,y),m=M[c[3]||o.m];
+  const p={x:cxp+x,y:cyp+y,ox:cxp+x,oy:cyp+y,r:s*(m.rr||.42),s,rx:x,ry:y,m,w:36/(m.rho*s*s),liq:o.liq,pk:0,bn:0,g:c[4]||0,col:`hsl(${c[0]},${c[1]}%,${c[2]+Math.random()*6-3}%)`,s};
   ps.push(p);
  }
  let mn=1e9,mx=-1e9;
@@ -162,9 +231,9 @@ function spawn(k){
  for(const p of ps){mn=Math.min(mn,p.y);mx=Math.max(mx,p.y)}
  for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){
   const a=ps[i],b=ps[j],d=Math.hypot(a.x-b.x,a.y-b.y);
-  if(d<s*1.5)S.push({a,b,bd:body,L:d,L0:d,m:a.m.ten<b.m.ten?a.m:b.m});
+  if(d<s*1.5&&a.g===b.g)S.push({a,b,bd:body,L:d,L0:d,m:a.m.ten<b.m.ten?a.m:b.m});
  }
- P.push(...ps);Object.assign(body,{h0:mx-mn,name:o.n,info:INFO[k]});B.push(body);rebuild();
+ P.push(...ps);Object.assign(body,{h0:mx-mn,name:o.n,boom:o.boom,info:INFO[k]||''});B.push(body);rebuild();
  if(ram>mn-14-HD)ram=Math.max(RMIN,mn-14-HD);
  while(0){const old=new Set(B.shift().ps);P=P.filter(p=>!old.has(p));S=S.filter(q=>!old.has(q.a)&&!old.has(q.b))}
 }
@@ -240,15 +309,15 @@ function collide(){
 let Csum=0;
 function step(h){
  let v=0;if(down)v=80/(1+F/900);if(up)v=-150;
- ram=cl(ram+v*h,RMIN,RMAX);for(const bd of B)bd.g-=h;if(dirty&&++tick%3===0){rebuild();dirty=0}
+ ram=cl(ram+(v-kick)*h,RMIN,RMAX);if(kick>0){kick*=.9955;if(ram<=RMIN+1||kick<80)kick=0}for(const bd of B)bd.g-=h;if(dirty&&++tick%3===0){rebuild();dirty=0}
  if(humG)humG.gain.value=Math.min(.07,Math.abs(v)/150*.07+(down?F/9000:0));
- for(const p of P){const vx=(p.x-p.ox)*.998,vy=(p.y-p.oy)*.998;p.ox=p.x;p.oy=p.y;p.x+=vx;p.y+=vy+G*h*h;p.pk*=.7}
+ for(const p of P){const vx=(p.x-p.ox)*.998,vy=(p.y-p.oy)*.998;p.ox=p.x;p.oy=p.y;p.x+=vx;p.y+=vy+G*h*h;p.pk*=.7;p.bn-=h}
  if(drag)dragStep();if(HEAD.cut)cutSprings();for(let it=0;it<4;it++){IT=it;
   for(let rep=0;rep<3;rep++)for(const q of S){
    if(q.dead)continue;const a=q.a,b=q.b;let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1e-6;
    if(it===0&&rep===0){
     const e=(d-q.L)/q.L,m=q.m;
-    const pf=(a.pk>.3||b.pk>.3)?.3:1;if((e>m.ten*pf||e<-m.cmp*pf)&&q.bd.g<=0){q.dead=1;dirty=1;brk(a,b,m);continue}
+    const pf=(a.pk>.3||b.pk>.3)?.3:1;if((e>m.ten*pf||e<-m.cmp*pf)&&q.bd.g<=0){q.dead=1;dirty=1;brk(a,b,m);if(q.bd.boom&&!q.bd.done){q.bd.done=1;explode(a.x,a.y)}continue}
     if(!m.sm&&Math.abs(e)>m.yl&&m.fl){q.L=Math.max(q.L0*.3,q.L+(d-q.L)*m.fl);if(a.liq&&Math.random()<.03&&D.length<380)D.push({x:a.x,y:a.y,vx:(Math.random()-.5)*200,vy:-Math.random()*150,col:a.liq,sz:1.5,life:4})}
    }
    if(q.a.m.sm&&q.b.m.sm)continue;const f=(d-q.L)/d*q.m.k,t=a.w+b.w,fa=f*a.w/t,fb=f*b.w/t;a.x+=dx*fa;a.y+=dy*fa;b.x-=dx*fb;b.y-=dy*fb;
@@ -256,8 +325,8 @@ function step(h){
   collide();
   for(const p of P){
    const r=p.r;
-   if(p.x<XL+r){p.x=XL+r}else if(p.x>XR-r){p.x=XR-r}
-   if(p.y>FY-r){p.y=FY-r;p.ox+=(p.x-p.ox)*p.m.mu}if(p.y<64+r)p.y=64+r;
+   if(p.x<XL+r){const vx=p.x-p.ox;p.x=XL+r;if(p.bn>0)p.ox=p.x+vx*.6}else if(p.x>XR-r){const vx=p.x-p.ox;p.x=XR-r;if(p.bn>0)p.ox=p.x+vx*.6}
+   if(p.y>FY-r){const vy=p.y-p.oy;p.y=FY-r;p.ox+=(p.x-p.ox)*p.m.mu;if(p.bn>0&&vy>.5)p.oy=p.y+vy*.6}if(p.y<64+r)p.y=64+r;
    const lim=ram+r;
    headHit(p,r)
   }
@@ -276,7 +345,7 @@ function upd(dt){
    if(d.y>=FY){sx.globalAlpha=.65;sx.fillStyle=d.col;sx.beginPath();sx.ellipse(d.x,FY+3+Math.random()*12,d.sz*(1+Math.random()*2),d.sz*.5,0,0,7);sx.fill();d.life=0}}
   if(d.life<=0||d.x<0||d.x>W)D.splice(i,1);
  }
- shake*=.9;
+ shake*=.9;if(blast){blast.t+=dt;if(blast.t>.6)blast=null}
 }
 
 function draw(){
@@ -307,7 +376,7 @@ function draw(){
  g=cx.createLinearGradient(168,0,192,0);g.addColorStop(0,'#8a909a');g.addColorStop(.4,'#e4e7ec');g.addColorStop(1,'#6a7079');
  cx.fillStyle=g;if(HEAD&&HEAD.hole){for(const ax of [112,224]){cx.save();cx.translate(ax-168,0);cx.fillRect(168,64,24,Math.max(0,ram-26-64));cx.restore()}}else cx.fillRect(168,64,24,Math.max(0,ram-26-64));
  g=cx.createLinearGradient(0,ram-26,0,ram);g.addColorStop(0,'#aab0ba');g.addColorStop(1,'#5b616b');
- drawHead();
+ drawHead();if(blast){const k=blast.t/.6,rad=40+k*260,gg=cx.createRadialGradient(blast.x,blast.y,0,blast.x,blast.y,rad);gg.addColorStop(0,'rgba(255,240,170,'+(.9*(1-k))+')');gg.addColorStop(.5,'rgba(255,140,40,'+(.5*(1-k))+')');gg.addColorStop(1,'rgba(255,80,0,0)');cx.fillStyle=gg;cx.fillRect(0,0,W,H)}
  
  if(dOn){cx.fillStyle='rgba(12,14,18,.7)';cx.fillRect(0,0,W,ram+HD+18);cx.fillRect(0,FY,W,H-FY);cx.fillRect(0,0,XL,H);cx.fillRect(XR,0,W-XR,H);cx.strokeStyle='#ffffff10';cx.lineWidth=1;
   for(let i=0;i<=W;i+=30){cx.beginPath();cx.moveTo(i,0);cx.lineTo(i,H);cx.stroke()}
@@ -447,6 +516,16 @@ const dropIt=()=>{
  for(const b of d.bds)b.g=Math.min(b.g,.1);
 };
 cv.addEventListener('pointerup',dropIt);cv.addEventListener('pointercancel',dropIt);
+let kick=0,blast=null;
+// bomb: shatter everything nearby, throw particles outward (they bounce), and slam the ram back to the top
+function explode(x,y){
+ blast={x,y,t:0};kick=3200;shake=12;dirty=1;
+ for(const q of S)if(!q.dead){const mx=(q.a.x+q.b.x)/2,my=(q.a.y+q.b.y)/2;if(Math.hypot(mx-x,my-y)<130)q.dead=1}
+ for(const p of P){const dx=p.x-x,dy=p.y-y,d=Math.hypot(dx,dy)||1,f=1-d/300;if(f<=0)continue;
+  const v=Math.min(2600,2800*f*f+300),ux=dx/d,uy=dy/d-.35;p.ox=p.x-ux*v/360;p.oy=p.y-uy*v/360;p.bn=5}
+ for(let i=0;i<60&&D.length<420;i++){const a=Math.random()*6.28,v=150+Math.random()*500;D.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-100,col:i%2?'#ffcf40':'#ff7a18',sz:1.5+Math.random()*2.5,life:1.2})}
+ if(ac&&nb){const s=ac.createBufferSource();s.buffer=nb;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=220;const g=ac.createGain();g.gain.setValueAtTime(1.4,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.9);s.connect(f);f.connect(g);g.connect(master);s.start(0,0,.5)}
+}
 let fpsAvg=60,lowT=0,noteT=0;
 function trimOldest(){if(B.length<2)return;const old=new Set(B.shift().ps);P=P.filter(p=>!old.has(p));S=S.filter(q=>!old.has(q.a)&&!old.has(q.b));dirty=1;noteT=4}
 // only remove objects if the frame rate stays very low for a long time
