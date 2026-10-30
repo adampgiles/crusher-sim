@@ -67,6 +67,13 @@ canvas{grid-area:cv;display:block;width:100%;height:100%;min-width:0;min-height:
 #ctl button.pri{flex:1.8;background:linear-gradient(#f7b92a,#e29a00);color:var(--acf);border-color:#c98900;box-shadow:0 3px 0 #9a6a00}
 #ctl button.on{transform:translateY(2px);box-shadow:none;filter:brightness(1.12)}
 #ctl #rs,#ctl #mu{flex:.55;font-size:13px}
+#hud{flex-wrap:wrap}#fb{min-width:70px}
+#ss{margin-left:auto;border:1px solid var(--bd);background:var(--pn2);color:var(--fg);border-radius:999px;padding:6px 12px;font-size:11px;font-weight:800;letter-spacing:.08em;cursor:pointer}
+#ss.on{background:var(--ac);color:var(--acf);border-color:var(--ac)}
+#lf,#rt{display:none}
+body.ss #lf,body.ss #rt{display:block;flex:.6}
+body.ss .nm{display:none!important}
+body:not(.ss) .sp{display:none!important}
 @media (min-aspect-ratio:1/1){
  body{grid-template-columns:minmax(290px,370px) minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr) auto auto;grid-template-areas:"hud cv" "sub cv" "hds cv" "chips cv" "dp cv" "ctl cv"}
  #sub{white-space:normal;border-top:0}
@@ -85,16 +92,17 @@ canvas{grid-area:cv;display:block;width:100%;height:100%;min-width:0;min-height:
  #chips button,#hds button{padding:7px 11px;font-size:12px}
 }
 </style></head><body>
-<div id="hud"><b>HYDRAULIC PRESS</b><div id="fb"><i></i></div><span id="fv">0 kN</span></div>
+<div id="hud"><b>HYDRAULIC PRESS</b><button id="ss">SUPERSIZE</button><div id="fb"><i></i></div><span id="fv">0 kN</span></div>
 <div id="sub">Drag objects to move them, then hold PRESS.</div>
 <canvas id="c" width="360" height="520"></canvas>
 <div id="dp" hidden><div id="dm"></div><div id="da"><button id="dh">Hollow: off</button><button id="dcl">Clear</button><button id="dx">Cancel</button><button id="dd" class="pri">Drop it</button></div></div>
 <div id="chips" data-l="Objects"></div>
 <div id="hds" data-l="Press head"></div>
-<div id="ctl"><button id="up">▲ RAISE</button><button id="dn" class="pri">▼ PRESS</button><button id="rs">RESET</button><button id="mu">🔊</button></div>
+<div id="ctl"><button id="up">▲ RAISE</button><button id="dn" class="pri">▼ PRESS</button><button id="lf">◀</button><button id="rt">▶</button><button id="rs">RESET</button><button id="mu">🔊</button></div>
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const W=360,H=520,FY=440,XL=40,XR=320,RMIN=80,G=2000;
+const WW=1800,Z=.62,WB_PY=26,WB_L=372;let SS=0,hx=180,hdx=0,dirW=1,BL=40,BR=320,WB=null,mvL=0,mvR=0,camx=0,camy=-285;
 const sp=document.createElement('canvas');sp.width=W;sp.height=H;const sx=sp.getContext('2d');
 let P=[],S=[],B=[],D=[],ram=RMIN+30,F=0,shake=0,down=0,up=0,acc=0,lastT=0,muted=false;
 
@@ -117,9 +125,10 @@ const M={
  paper:{k:.7,ten:.06,cmp:.1,yl:9,fl:0,du:1,sm:1},
  candy:{k:.5,ten:.08,cmp:.12,yl:9,fl:0,gl:.5,sm:1},
  coin:{k:.95,ten:3,yl:9,fl:0,sm:1},
- tnt:{k:.5,ten:.12,yl:.05,fl:.05,du:1}
+ tnt:{k:.5,ten:.12,yl:.05,fl:.05,du:1},
+ wball:{k:.95,ten:9,cmp:9,yl:9,fl:0,sm:1,hv:1}
 };
-const RHO={rubber:1.1,rind:.9,flesh:.95,shell:2.4,goo:1.03,glass:2.5,metal:2.7,stone:2.0,steel:7.8,skin:1,wood:.7,jelly:1.05,iron:7.2,ceramic:2.4,paper:.8,candy:1.4,coin:9,tnt:1.6},MU={rubber:.9,glass:.2,steel:.3,stone:.6,metal:.4,rind:.5,flesh:.6,goo:.2,skin:.5,shell:.3};
+const RHO={rubber:1.1,rind:.9,flesh:.95,shell:2.4,goo:1.03,glass:2.5,metal:2.7,stone:2.0,steel:7.8,skin:1,wood:.7,jelly:1.05,iron:7.2,ceramic:2.4,paper:.8,candy:1.4,coin:9,tnt:1.6,wball:80},MU={rubber:.9,glass:.2,steel:.3,stone:.6,metal:.4,rind:.5,flesh:.6,goo:.2,skin:.5,shell:.3};
 const RR={rubber:.48,rind:.46,flesh:.48,goo:.49,skin:.47,steel:.46};
 for(const k in M){M[k].rho=RHO[k];M[k].mu=MU[k]||.4;M[k].rr=RR[k]||.42;M[k].cmp=M[k].cmp||9}
 const el=(a,b)=>(x,y)=>(x/a)**2+(y/b)**2<=1;
@@ -209,10 +218,10 @@ Object.assign(O,{
 Object.assign(INFO,{ball:'0.6 kg, bouncy rubber',steel:'solid, will not break',brick:'brick wall section',jelly:'wobbly dessert',teapot:'ceramic, brittle',phone:'glass front, metal frame',concrete:'hollow-core block',log:'upright hardwood',cbomb:'iron shell packed with sweets'});
 Object.assign(INFO,{orange:'~200 g',apple:'~180 g',pumpkin:'~5 kg, thick rind',jelly:'wobbly dessert',mug:'ceramic, brittle',plate:'thin ceramic',phone:'glass front, metal back',crate:'wooden planks',concrete:'hollow block',log:'dense hardwood',ice:'brittle ice',anvil:'solid steel, will not break',dumbbell:'solid steel',cbomb:'iron shell packed with sweets',pinata:'paper shell full of sweets',piggy:'ceramic bank full of coins',chest:'wooden chest full of gold',jar:'glass jar of marbles',bomb:'DANGER: explodes when the casing cracks',dynamite:'DANGER: unstable'});
 const OGROUPS=[['Food',['melon','orange','apple','pumpkin','tomato','egg','jelly']],['Everyday',['ball','can','bottle','bulb','mug','teapot','phone']],['Hard',['brick','crate','concrete','log','ice','steel','anvil','dumbbell']],['Containers',['cbomb','pinata','piggy','chest','jar']],['Explosive',['bomb','dynamite']]];
-for(const [gn,ks] of OGROUPS){const l=document.createElement('span');l.className='gl';l.textContent=gn;chips.appendChild(l);for(const k of ks){const b=document.createElement('button');b.textContent=O[k].e+' '+O[k].n;b.onclick=()=>{initAudio();spawn(k)};chips.appendChild(b)}}
+for(const [gn,ks] of OGROUPS){const l=document.createElement('span');l.className='gl nm';l.textContent=gn;chips.appendChild(l);for(const k of ks){const b=document.createElement('button');b.textContent=O[k].e+' '+O[k].n;b.className='nm';b.onclick=()=>{initAudio();spawn(k)};chips.appendChild(b)}}
 
 function spawn(k){
- const o=O[k],s=o.s*.65,t=(o.hol||0)*s,R=o.R||72,ps=[],cxp=o.at?o.at[0]:XL+60+Math.random()*(XR-XL-120),cyp=o.at?o.at[1]:FY-o.hb-6;
+ const o=O[k],s=o.s*(SS?.8:.65),t=(o.hol||0)*s,R=o.R||72,ps=[],cxp=o.at?o.at[0]:XL+60+Math.random()*(XR-XL-120),cyp=o.at?o.at[1]:FY-o.hb-6;
  for(let y=-R;y<=R;y+=s)for(let x=-R;x<=R;x+=s){
   if(!o.f(x,y))continue;
   const inn=t&&o.f(x+t,y)&&o.f(x-t,y)&&o.f(x,y+t)&&o.f(x,y-t);let fc=null;if(inn){fc=o.fill&&o.fill(x,y);if(!fc)continue}
@@ -292,7 +301,7 @@ function shape(first){
    if(dx*dx+dy*dy>ys*ys){p.rx+=dx*p.m.fl*.2;p.ry+=dy*p.m.fl*.2}}
   const gx=cx0+c*wx-s*wy,gy=cy0+s*wx+c*wy;p.x+=(gx-p.x)*p.m.sm;p.y+=(gy-p.y)*p.m.sm}
 }
-const CS=12,GC=Math.ceil(W/CS)+2,GR=Math.ceil(H/CS)+2,head=new Int32Array(GC*GR),nxt=new Int32Array(40000);
+const CS=12,GC=Math.ceil(1900/CS)+2,GR=Math.ceil(H/CS)+2,head=new Int32Array(GC*GR),nxt=new Int32Array(40000);
 const cl=(v,a,b)=>v<a?a:v>b?b:v;
 function collide(){
  head.fill(-1);shape(IT===0);const n=P.length;
@@ -302,22 +311,22 @@ function collide(){
   for(let gy=Math.max(0,cy0-1);gy<=Math.min(GR-1,cy0+1);gy++)for(let gx=Math.max(0,cx0-1);gx<=Math.min(GC-1,cx0+1);gx++)
    for(let j=head[gy*GC+gx];j>=0;j=nxt[j]){
     if(j<=i)continue;const q=P[j],dx=q.x-p.x,dy=q.y-p.y,d2=dx*dx+dy*dy,md=p.r+q.r;
-    if(d2<md*md&&d2>1e-6){const d=Math.sqrt(d2),f=(md-d)/d,t=p.w+q.w,fp=f*p.w/t,fq=f*q.w/t;p.x-=dx*fp;p.y-=dy*fp;q.x+=dx*fq;q.y+=dy*fq}
+    if(d2<md*md&&d2>1e-6){if(p.m.hv!==q.m.hv){const hh=p.m.hv?p:q,oo=p.m.hv?q:p;{const sp2=Math.hypot(hh.x-hh.ox,hh.y-hh.oy);if(sp2>.4){oo.pk=3;if(sp2>.9&&IMP.length<24)IMP.push(oo.x,oo.y,sp2)}}}const d=Math.sqrt(d2),f=(md-d)/d,t=p.w+q.w,fp=f*p.w/t,fq=f*q.w/t;p.x-=dx*fp;p.y-=dy*fp;q.x+=dx*fq;q.y+=dy*fq}
    }
  }
 }
 let Csum=0;
 function step(h){
- let v=0;if(down)v=80/(1+F/900);if(up)v=-150;
+ let v=0;if(down&&!WB)v=80/(1+F/900);if(up||WB)v=-150;if(SS){hx=cl(hx+(mvR-mvL)*(ram>FY-HD-60?40:240)*h,170,WW-170);hdx=hx-180;if(mvR)dirW=1;if(mvL)dirW=-1}if(WB){WB.charge=down?Math.min(1,WB.charge+h/1.4):0;WB.dir=dirW}
  ram=cl(ram+(v-kick)*h,RMIN,RMAX);if(kick>0){kick*=.9955;if(ram<=RMIN+1||kick<80)kick=0}for(const bd of B)bd.g-=h;if(dirty&&++tick%3===0){rebuild();dirty=0}
  if(humG)humG.gain.value=Math.min(.07,Math.abs(v)/150*.07+(down?F/9000:0));
  for(const p of P){const vx=(p.x-p.ox)*.998,vy=(p.y-p.oy)*.998;p.ox=p.x;p.oy=p.y;p.x+=vx;p.y+=vy+G*h*h;p.pk*=.7;p.bn-=h}
- if(drag)dragStep();if(HEAD.cut)cutSprings();for(let it=0;it<4;it++){IT=it;
+ if(drag)dragStep();if(HEAD.cut)cutSprings();if(WB)ropeStep();procImp();for(let it=0;it<4;it++){IT=it;
   for(let rep=0;rep<3;rep++)for(const q of S){
    if(q.dead)continue;const a=q.a,b=q.b;let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1e-6;
    if(it===0&&rep===0){
     const e=(d-q.L)/q.L,m=q.m;
-    const pf=(a.pk>.3||b.pk>.3)?.3:1;if((e>m.ten*pf||e<-m.cmp*pf)&&q.bd.g<=0){q.dead=1;dirty=1;brk(a,b,m);if(q.bd.boom&&!q.bd.done){q.bd.done=1;explode(a.x,a.y)}continue}
+    const pf=((a.pk>1.5||b.pk>1.5)&&m.ten<3)?-1:(a.pk>.3||b.pk>.3)?.3:1;if((e>m.ten*pf||e<-m.cmp*pf)&&q.bd.g<=0){q.dead=1;dirty=1;brk(a,b,m);if(q.bd.boom&&!q.bd.done){q.bd.done=1;explode(a.x,a.y)}continue}
     if(!m.sm&&Math.abs(e)>m.yl&&m.fl){q.L=Math.max(q.L0*.3,q.L+(d-q.L)*m.fl);if(a.liq&&Math.random()<.03&&D.length<380)D.push({x:a.x,y:a.y,vx:(Math.random()-.5)*200,vy:-Math.random()*150,col:a.liq,sz:1.5,life:4})}
    }
    if(q.a.m.sm&&q.b.m.sm)continue;const f=(d-q.L)/d*q.m.k,t=a.w+b.w,fa=f*a.w/t,fb=f*b.w/t;a.x+=dx*fa;a.y+=dy*fa;b.x-=dx*fb;b.y-=dy*fb;
@@ -325,7 +334,7 @@ function step(h){
   collide();
   for(const p of P){
    const r=p.r;
-   if(p.x<XL+r){const vx=p.x-p.ox;p.x=XL+r;if(p.bn>0)p.ox=p.x+vx*.6}else if(p.x>XR-r){const vx=p.x-p.ox;p.x=XR-r;if(p.bn>0)p.ox=p.x+vx*.6}
+   if(p.x<BL+r){const vx=p.x-p.ox;p.x=BL+r;if(p.bn>0)p.ox=p.x+vx*.6}else if(p.x>BR-r){const vx=p.x-p.ox;p.x=BR-r;if(p.bn>0)p.ox=p.x+vx*.6}
    if(p.y>FY-r){const vy=p.y-p.oy;p.y=FY-r;p.ox+=(p.x-p.ox)*p.m.mu;if(p.bn>0&&vy>.5)p.oy=p.y+vy*.6}if(p.y<64+r)p.y=64+r;
    const lim=ram+r;
    headHit(p,r)
@@ -343,13 +352,13 @@ function upd(dt){
   if(d.dust){d.x+=d.vx*dt;d.y+=d.vy*dt;d.vy+=20*dt;d.sz+=dt*4}
   else{d.vy+=G*.7*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;
    if(d.y>=FY){sx.globalAlpha=.65;sx.fillStyle=d.col;sx.beginPath();sx.ellipse(d.x,FY+3+Math.random()*12,d.sz*(1+Math.random()*2),d.sz*.5,0,0,7);sx.fill();d.life=0}}
-  if(d.life<=0||d.x<0||d.x>W)D.splice(i,1);
+  if(d.life<=0||d.x<0||d.x>(SS?WW:W))D.splice(i,1);
  }
  shake*=.9;if(blast){blast.t+=dt;if(blast.t>.6)blast=null}
 }
 
 function draw(){
- cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,W,H);
+ if(SS){drawSS();return}cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,W,H);
  cx.fillStyle='#1a1d22';cx.fillRect(0,0,W,H);
  const sh=shake>.05?[(Math.random()-.5)*shake,(Math.random()-.5)*shake]:[0,0];cx.translate(sh[0],sh[1]);
  // bed
@@ -418,7 +427,7 @@ const dmEl=document.getElementById('dm'),dpEl=document.getElementById('dp'),subE
 function sel(){for(const b of dmEl.children)b.classList.toggle('sel',b.dataset.k===dmat)}
 for(const k in MC){const b=document.createElement('button');b.textContent=MN[k];b.dataset.k=k;b.onclick=()=>{dmat=k;sel()};dmEl.appendChild(b)}
 function dmode(on){dOn=on;dpEl.hidden=!on;chips.style.display=on?'none':'';document.getElementById('hds').style.display=on?'none':'';document.getElementById('ctl').style.display=on?'none':'';cv.style.touchAction='none';if(on){dpts=[];dclosed=0;sel();subEl.textContent='Draw inside the press area, pick a material'}}
-const dchip=document.createElement('button');dchip.textContent='✏️ Draw';dchip.onclick=()=>{initAudio();dmode(1)};chips.insertBefore(dchip,chips.firstChild);
+const dchip=document.createElement('button');dchip.textContent='✏️ Draw';dchip.className='nm';dchip.onclick=()=>{initAudio();dmode(1)};chips.insertBefore(dchip,chips.firstChild);
 function cpos(e){const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2;return{x:Math.min(XR-2,Math.max(XL+2,(e.clientX-ox)/sc)),y:Math.min(FY-1,Math.max(ram+HD+18,(e.clientY-oy)/sc))}}
 cv.addEventListener('pointerdown',e=>{if(!dOn)return;e.preventDefault();cv.setPointerCapture(e.pointerId);dpts=[cpos(e)];dclosed=0;dDown=1});
 cv.addEventListener('pointermove',e=>{if(!dOn||!dDown)return;const p=cpos(e),l=dpts[dpts.length-1];if(Math.hypot(p.x-l.x,p.y-l.y)>3)dpts.push(p)});
@@ -455,34 +464,36 @@ const HEADS={
  tender:{n:'Tenderiser',d:14,mk:()=>{const a=[bx(XL,XR,-26,0)];for(let i=0;i<7;i++)a.push(bx(XL+14+i*40,XL+30+i*40,0,14));return a}},
  dome:{n:'Dome',d:48,mk:()=>{const v=[];for(let i=0;i<=12;i++){const t=Math.PI*i/12;v.push([180+110*Math.cos(t),48*Math.sin(t)])}return[bx(XL,XR,-26,0),mkp(v)]}},
  sieve:{n:'Extruder',d:0,mk:()=>[bx(XL,120,-50,0),bx(130,230,-50,0),bx(240,XR,-50,0)]},
- funnel:{n:'Funnel',d:48,rim:1,hole:[175,185],mk:()=>[mkp([[XL,-26],[175,-26],[XL+16,48],[XL,48]]),mkp([[185,-26],[XR,-26],[XR,48],[XR-16,48]]),bx(165,175,-62,-26),bx(185,195,-62,-26)]}
+ funnel:{n:'Funnel',d:48,rim:1,hole:[175,185],mk:()=>[mkp([[XL,-26],[175,-26],[XL+16,48],[XL,48]]),mkp([[185,-26],[XR,-26],[XR,48],[XR-16,48]]),bx(165,175,-62,-26),bx(185,195,-62,-26)]},
+ wball:{n:'Wrecking ball',d:0,ss:1,mk:()=>[]}
 };
 let HD=0,HEAD=null,RMAX=FY;
-function headHit(p,r){
+function headHit(p,r){p.x-=hdx;p.ox-=hdx;headHit0(p,r);p.x+=hdx;p.ox+=hdx}
+function headHit0(p,r){
  for(const g of HEAD.polys){
   if(p.x<g.x0-r||p.x>g.x1+r||p.y<ram+g.y0-r||p.y>ram+g.y1+r)continue;
   let dm=-1e9,ei=null;
   for(const e of g.e){const d=e.nx*(p.x-e.ax)+e.ny*(p.y-ram-e.ay);if(d>dm){dm=d;ei=e}}
   if(g.tip&&dm<r+2)p.pk=1;
-  if(dm<r){const pen=r-dm;p.x+=ei.nx*pen;p.y+=ei.ny*pen;p.x=Math.min(XR-r,Math.max(XL+r,p.x));Csum+=pen*p.m.k*2*p.s/6;p.ox+=(p.x-p.ox)*p.m.mu}
+  if(dm<r){const pen=r-dm;p.x+=ei.nx*pen;p.y+=ei.ny*pen;p.x=Math.min(BR-hdx-r,Math.max(BL-hdx+r,p.x));Csum+=pen*p.m.k*2*p.s/6;p.ox+=(p.x-p.ox)*p.m.mu}
  }
 }
 function drawHead(){
  for(const pg of HEAD.polys){cx.beginPath();pg.v.forEach((v,i)=>i?cx.lineTo(v[0],ram+v[1]):cx.moveTo(v[0],ram+v[1]));cx.closePath();
   const g=cx.createLinearGradient(0,ram+pg.y0,0,ram+pg.y1);g.addColorStop(0,'#aab0ba');g.addColorStop(1,pg.tip?'#e6e9ee':'#5b616b');
   cx.fillStyle=g;cx.fill();cx.strokeStyle='#1c1f24';cx.lineWidth=1;cx.stroke()}
- if(HEAD.hole){const hl=HEAD.hole;cx.save();cx.beginPath();cx.rect(hl[0]-6,64,hl[1]-hl[0]+12,H);cx.clip();
+ if(HEAD.hole){const hl=HEAD.hole;cx.save();cx.beginPath();cx.rect(hl[0]-6,64,hl[1]-hl[0]+12,H);cx.clip();cx.translate(-hdx,0);
   cx.fillStyle='#000a';for(const p of P){cx.beginPath();cx.arc(p.x,p.y,p.r*1.3,0,7);cx.fill()}
   for(const p of P){cx.fillStyle=p.col;cx.beginPath();cx.arc(p.x,p.y,p.r*1.12,0,7);cx.fill()}cx.restore()}
 }
 const hds=document.getElementById('hds');
 function setHead(k){HEAD={k,polys:HEADS[k].mk().map(g=>mkp(g.v.map(q=>[q[0]===XL?XL-4:q[0]===XR?XR+4:q[0],q[1]]),g.tip)),hole:HEADS[k].hole,cut:HEADS[k].cut};HD=HEADS[k].d;RMAX=HEADS[k].rim?FY+26:FY;let mn=1e9;for(const p of P)mn=Math.min(mn,p.y-p.r);
- ram=Math.max(RMIN,Math.min(ram,mn-14-HD,RMAX));for(const b of hds.children)b.classList.toggle('sel',b.dataset.k===k)}
-for(const k in HEADS){const b=document.createElement('button');b.textContent=HEADS[k].n;b.dataset.k=k;b.onclick=()=>setHead(k);hds.appendChild(b)}
+ ram=Math.max(RMIN,Math.min(ram,mn-14-HD,RMAX));for(const b of hds.children)b.classList.toggle('sel',b.dataset.k===k);wbSetup(k)}
+for(const k in HEADS){const b=document.createElement('button');b.textContent=HEADS[k].n;b.dataset.k=k;if(HEADS[k].ss)b.className='sp';b.onclick=()=>setHead(k);hds.appendChild(b)}
 setHead('flat');
 // the blade severs every bond it has passed through (steel excepted), so objects genuinely split in two
 function cutSprings(){
- const tips=HEAD.polys.filter(g=>g.tip).map(g=>[(g.v[0][0]+g.v[1][0])/2,ram+g.y1]);let any=0;
+ const tips=HEAD.polys.filter(g=>g.tip).map(g=>[(g.v[0][0]+g.v[1][0])/2+hdx,ram+g.y1]);let any=0;
  for(const q of S){if(q.dead||q.m.ten>=3)continue;const a=q.a,b=q.b,my=(a.y+b.y)/2;if(my<ram-26)continue;
   const lo=Math.min(a.x,b.x),hi=Math.max(a.x,b.x);
   for(const t of tips)if(my<t[1]&&lo<t[0]+3&&hi>t[0]-3){q.dead=1;any=1;if(Math.random()<.3)brk(a,b,q.m);break}}
@@ -490,14 +501,14 @@ function cutSprings(){
 }
 // drag objects around the crusher
 let drag=null;cv.style.touchAction='none';
-function rpos(e){const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2;return{x:(e.clientX-ox)/sc,y:(e.clientY-oy)/sc}}
+function rpos(e){const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2;return(()=>{const X=(e.clientX-ox)/sc,Y=(e.clientY-oy)/sc;return SS?{x:X/Z+camx,y:Y/Z+camy}:{x:X,y:Y}})()}
 function dragStep(){
  const d=drag,p=d.p;let dx=(d.tx+d.fx-p.x)*.3,dy=(d.ty+d.fy-p.y)*.3;const m=Math.hypot(dx,dy);if(m>3){dx*=3/m;dy*=3/m}
  for(const q of d.ps){q.x+=dx;q.y+=dy;q.ox=q.x-dx*.3;q.oy=q.y-dy*.3}
  for(const b of d.bds)b.g=Math.max(b.g,.25);
 }
 cv.addEventListener('pointerdown',e=>{
- if(dOn)return;initAudio();const r=rpos(e);let best=null,bd=22;
+ if(dOn)return;initAudio();const r=rpos(e);let best=null,bd=SS?36:22;
  for(const p of P){const d=Math.hypot(p.x-r.x,p.y-r.y);if(d<bd){bd=d;best=p}}
  if(!best)return;e.preventDefault();cv.setPointerCapture(e.pointerId);
  for(const p of P)p.tn=[];
@@ -526,6 +537,83 @@ function explode(x,y){
  for(let i=0;i<60&&D.length<420;i++){const a=Math.random()*6.28,v=150+Math.random()*500;D.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-100,col:i%2?'#ffcf40':'#ff7a18',sz:1.5+Math.random()*2.5,life:1.2})}
  if(ac&&nb){const s=ac.createBufferSource();s.buffer=nb;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=220;const g=ac.createGain();g.gain.setValueAtTime(1.4,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.9);s.connect(f);f.connect(g);g.connect(master);s.start(0,0,.5)}
 }
+// ================= SUPERSIZE MODE =================
+const sdist=(x,y,ax,ay,bx2,by2)=>{const dx=bx2-ax,dy=by2-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));return Math.hypot(x-ax-t*dx,y-ay-t*dy)};
+Object.assign(O,{
+ house:{n:'House',e:'🏠',s:16,hb:52,R:96,f:(x,y)=>(Math.abs(x)<70&&y>-10&&y<=52)||(y<=-10&&y>-52&&Math.abs(x)<2*(y+52))||(x>=38&&x<=52&&y>-60&&y<=-20),c:(x,y)=>{if(x>=38&&x<=52&&y<-20)return[8,55,34,'stone'];if(y<-10)return[8,60,38,'wood'];if(Math.abs(Math.abs(x)-36)<8&&Math.abs(y-14)<8)return[200,60,75,'glass'];if(Math.abs(x)<8&&y>26)return[25,55,30,'wood'];return[38,40,78,'stone']}},
+ apartment:{n:'Apartment block',e:'🏢',s:16,hb:90,R:100,f:rc(55,90),c:(x,y)=>{const wx=(x+55)%22,wy=(y+90)%30;if(y>72&&Math.abs(x)<10)return[200,40,30,'glass'];if(wx>5&&wx<17&&wy>7&&wy<23&&y<70)return[((Math.floor((x+55)/22)*7+Math.floor((y+90)/30)*13)%3)?205:48,55,Math.random()<.5?68:55,'glass'];return y<-82?[0,0,28,'stone']:[18,12,62,'stone']}},
+ skyscraper:{n:'Skyscraper',e:'🏙️',s:16,hb:120,R:150,f:(x,y)=>(Math.abs(x)<34&&Math.abs(y)<120)||(Math.abs(x)<3&&y<=-120&&y>-142),c:(x,y)=>y<-120?[0,0,60,'steel']:(Math.abs(x)>28||((y+120)%24<4))?[215,12,26,'stone']:[200,55,48+Math.abs(Math.sin(y*.1))*18,'glass']},
+ tower:{n:'Water tower',e:'🗼',s:14,hb:60,R:110,f:(x,y)=>(Math.abs(x)<34&&Math.abs(y+60)<24)||(y>=-100&&y<-84&&Math.abs(x)<34*(y+100)/16)||(Math.abs(Math.abs(x)-24)<4&&y>=-36&&y<=60)||(Math.abs(y-12)<3&&Math.abs(x)<28),c:(x,y)=>y<-36?(y<-84?[0,60,40,'metal']:[200,15,60,'metal']):[30,40,30,'steel']},
+ car:{n:'Car',e:'🚗',s:14,hb:36,R:70,f:(x,y)=>(Math.abs(x)<60&&Math.abs(y-8)<12)||(y<-4&&y>-22&&Math.abs(x)<38-(-y-4)*.5)||Math.hypot(Math.abs(x)-36,y-22)<14,c:(x,y)=>{const w=Math.hypot(Math.abs(x)-36,y-22);if(w<14)return w<5?[210,8,62,'steel']:[0,0,10,'rubber'];if(y<-4)return[200,60,72,'glass'];return x>52?[50,95,60,'metal']:[0,78,44,'metal']}},
+ bus:{n:'Bus',e:'🚌',s:15,hb:40,R:110,f:(x,y)=>(Math.abs(x)<100&&Math.abs(y+8)<30)||Math.hypot(Math.abs(x)-62,y-24)<16,c:(x,y)=>{const w=Math.hypot(Math.abs(x)-62,y-24);if(w<16)return w<6?[210,8,62,'steel']:[0,0,10,'rubber'];if(y<-14&&y>-32&&Math.abs(x)<92&&((x+100)%24)<18)return[200,60,72,'glass'];return[48,95,52,'metal']}},
+ tank:{n:'Tank',e:'🪖',s:14,hb:32,R:100,f:(x,y)=>(Math.abs(x)<64&&y>=10&&y<=32&&(Math.abs(x)<54||Math.hypot(Math.abs(x)-54,y-21)<11))||(Math.abs(x)<56&&y>-6&&y<10)||(Math.abs(x)<26&&y>-22&&y<=-6)||(x>=26&&x<=88&&Math.abs(y+14)<3.5),c:(x,y)=>y>=10?[0,0,Math.abs((x+70)%12)<3?25:14,'rubber']:[95,28,Math.abs(y+14)<3.5?25:30,'metal']},
+ excavator:{n:'Excavator',e:'🚜',s:14,hb:32,R:110,f:(x,y)=>(Math.abs(x)<50&&y>=14&&y<=32)||(x>-30&&x<12&&y>-22&&y<14)||sdist(x,y,10,-6,70,-52)<5||sdist(x,y,70,-52,96,-8)<4.5||(x>=90&&x<=108&&y>-10&&y<6),c:(x,y)=>y>=14?[0,0,18,'rubber']:(x>-24&&x<4&&y>-18&&y<-4)?[200,60,72,'glass']:[48,95,50,'metal']},
+ loco:{n:'Locomotive',e:'🚂',s:15,hb:38,R:125,f:(x,y)=>(Math.abs(x)<110&&y>-24&&y<=14)||(x>=50&&x<=110&&y>-52&&y<=-24)||(x>=-92&&x<=-76&&y>-48&&y<=-24)||Math.min(Math.hypot(x-66,y-26),Math.hypot(x-22,y-26),Math.hypot(x+22,y-26),Math.hypot(x+66,y-26))<12,c:(x,y)=>y>14?[0,0,20,'steel']:(x>=62&&x<=98&&y>-46&&y<-30)?[200,60,72,'glass']:(x>=-92&&x<=-76&&y<-24)?[0,0,12,'metal']:Math.abs(y+1)<3?[0,80,45,'metal']:[215,60,32,'metal']},
+ wrecker:{n:'Wrecking ball',e:'⚫',s:10,hb:28,R:40,f:el(28,28),c:()=>[220,8,30,'wball']}
+});
+Object.assign(INFO,{house:'brick and timber home',apartment:'concrete tower block',skyscraper:'glass and concrete tower',tower:'steel water tower',car:'metal body, rubber tyres',bus:'long metal body',tank:'heavy armoured vehicle',excavator:'steel arm, rubber tracks',loco:'heavy steel locomotive'});
+const SSG=[['Buildings',['house','apartment','skyscraper','tower']],['Vehicles',['car','bus','tank']],['Machines',['excavator','loco']]];
+for(const [gn,ks] of SSG){const l=document.createElement('span');l.className='gl sp';l.textContent=gn;chips.appendChild(l);for(const k of ks){const b=document.createElement('button');b.className='sp';b.textContent=O[k].e+' '+O[k].n;b.onclick=()=>{initAudio();spawnSS(k)};chips.appendChild(b)}}
+function spawnSS(k,xx){
+ const o=O[k];let x=xx;
+ if(x==null){const w=(o.R||80)*.8;x=null;for(let i=0;i<40&&x==null;i++){const c=hx+(i%2?1:-1)*Math.ceil(i/2)*w*1.2;if(c<w+10||c>WW-w-10)continue;let ok=true;for(const p of P)if(Math.abs(p.x-c)<w&&p.y>FY-2*o.hb-30){ok=false;break}if(ok)x=c}if(x==null)x=hx}
+ o.at=[x,FY-o.hb-6];spawn(k);
+}
+// heavy hits shatter every bond in a radius around the point of impact
+const IMP=[];
+function procImp(){
+ if(!IMP.length)return;let any=0;
+ for(const q of S){if(q.dead||q.m.ten>=3||q.bd.g>0)continue;const mx=(q.a.x+q.b.x)/2,my=(q.a.y+q.b.y)/2;
+  for(let i=0;i<IMP.length;i+=3){if(Math.hypot(mx-IMP[i],my-IMP[i+1])<16+IMP[i+2]*16){q.dead=1;any=1;if(Math.random()<.15)brk(q.a,q.b,q.m);break}}}
+ IMP.length=0;if(any)dirty=1;
+}
+function removeBody(b){const old=new Set(b.ps);P=P.filter(p=>!old.has(p));S=S.filter(q=>!old.has(q.a)&&!old.has(q.b));const i=B.indexOf(b);if(i>=0)B.splice(i,1);dirty=1}
+// wrecking ball: heavy rigid ball on an inextensible rope from the gantry; hold PRESS to pull it back, release to swing
+function wbSetup(k){
+ if(WB&&k!=='wball'){removeBody(WB.body);WB=null}
+ if(k==='wball'&&!WB){ram=RMIN;O.wrecker.at=[hx,WB_PY+WB_L];spawn('wrecker');const b=B[B.length-1];b.g=0;WB={body:b,ps:b.ps,charge:0,dir:1}}
+}
+function ropeStep(){
+ const w=WB,ps=w.ps;if(!ps.length)return;let cx0=0,cy0=0;for(const p of ps){cx0+=p.x;cy0+=p.y}cx0/=ps.length;cy0/=ps.length;
+ const dx=cx0-hx,dy=cy0-WB_PY,d=Math.hypot(dx,dy)||1;let mx=0,my=0;
+ if(w.charge>0){const th=w.charge*1.15*w.dir,tx=hx+Math.sin(th)*WB_L,ty=WB_PY+Math.cos(th)*WB_L;mx=(tx-cx0)*.12;my=(ty-cy0)*.12}
+ else if(d>WB_L){mx=-dx/d*(d-WB_L);my=-dy/d*(d-WB_L)}
+ for(const p of ps){p.x+=mx;p.y+=my;if(w.charge>0){p.ox=p.x;p.oy=p.y}}
+}
+function drawSS(){
+ cx.setTransform(1,0,0,1,0,0);
+ const vw=W/Z;camx=cl(hx-vw/2,0,WW-vw);
+ let g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#4f9fe0');g.addColorStop(.75,'#bde0f3');g.addColorStop(1,'#eaf5ee');cx.fillStyle=g;cx.fillRect(0,0,W,H);
+ cx.setTransform(Z,0,0,Z,-camx*Z,-camy*Z);
+ cx.fillStyle='rgba(255,255,255,.85)';
+ for(let i=0;i<12;i++){const x=i*170+60,y=-80-((i*53)%140);cx.beginPath();cx.ellipse(x,y,50,16,0,0,7);cx.fill();cx.beginPath();cx.ellipse(x+30,y-8,30,14,0,0,7);cx.fill()}
+ cx.fillStyle='#8fb9a0';cx.beginPath();cx.moveTo(0,FY);for(let x=0;x<=WW;x+=40)cx.lineTo(x,FY-70-40*Math.sin(x*.006)-20*Math.sin(x*.017));cx.lineTo(WW,FY);cx.fill();
+ cx.fillStyle='#5f9e57';cx.fillRect(0,FY,WW,130);
+ cx.fillStyle='#4a4f57';cx.fillRect(0,FY,WW,38);cx.fillStyle='#e8e2b0';for(let x=10;x<WW;x+=60)cx.fillRect(x,FY+17,30,4);
+ cx.lineCap='round';cx.fillStyle='#000a';
+ for(const p of P){cx.beginPath();cx.arc(p.x,p.y,p.r*1.3,0,7);cx.fill()}
+ for(const q of S){if(q.dead||q.L0>q.a.s*1.2)continue;cx.strokeStyle=q.a.col;cx.lineWidth=q.a.r*2.2;cx.beginPath();cx.moveTo(q.a.x,q.a.y);cx.lineTo(q.b.x,q.b.y);cx.stroke()}
+ for(const p of P){cx.fillStyle=p.col;cx.beginPath();cx.arc(p.x,p.y,p.r*1.12,0,7);cx.fill()}
+ for(const d of D){if(d.dust){cx.fillStyle='rgba(190,180,165,'+Math.max(0,d.life)*.35+')';cx.beginPath();cx.arc(d.x,d.y,d.sz,0,7);cx.fill()}else{cx.fillStyle=d.col;cx.beginPath();cx.arc(d.x,d.y,d.sz,0,7);cx.fill()}}
+ // gantry rail, pylons, trolley
+ cx.fillStyle='#4b525c';cx.fillRect(0,14,WW,10);cx.fillRect(0,14,22,FY+26);cx.fillRect(WW-22,14,22,FY+26);
+ cx.fillStyle='#3d434d';cx.fillRect(hx-60,24,120,40);cx.fillStyle='#d9a21b';cx.fillRect(hx-30,14,60,50);cx.fillStyle='#b88a14';cx.fillRect(hx-30,14,60,6);
+ if(WB&&WB.ps.length){let bx0=0,by0=0;for(const p of WB.ps){bx0+=p.x;by0+=p.y}bx0/=WB.ps.length;by0/=WB.ps.length;cx.strokeStyle='#2a2e34';cx.lineWidth=4;cx.setLineDash([8,4]);cx.beginPath();cx.moveTo(hx,WB_PY);cx.lineTo(bx0,by0);cx.stroke();cx.setLineDash([])}
+ else{g=cx.createLinearGradient(hx-12,0,hx+12,0);g.addColorStop(0,'#8a909a');g.addColorStop(.4,'#e4e7ec');g.addColorStop(1,'#6a7079');cx.fillStyle=g;cx.fillRect(hx-12,64,24,Math.max(0,ram-26-64))}
+ cx.save();cx.translate(hdx,0);drawHead();cx.restore();
+ cx.setTransform(1,0,0,1,0,0);
+}
+function setMode(on){
+ SS=on?1:0;document.body.classList.toggle('ss',!!on);
+ reset();WB=null;BL=on?0:XL;BR=on?WW:XR;hx=on?WW/2:180;hdx=hx-180;mvL=mvR=0;
+ setHead('flat');
+ if(on){spawnSS('house',hx);spawnSS('car',hx-330);spawnSS('apartment',hx+330)}
+ else document.getElementById('sub').textContent='Drag objects to move them, then hold PRESS.';
+}
+document.getElementById('ss').onclick=e=>{setMode(!SS);e.currentTarget.classList.toggle('on',!!SS)};
+hold('lf',v=>mvL=v);hold('rt',v=>mvR=v);
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')mvL=1;if(e.key==='ArrowRight'||e.key==='d')mvR=1});
+addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')mvL=0;if(e.key==='ArrowRight'||e.key==='d')mvR=0});
 let fpsAvg=60,lowT=0,noteT=0;
 function trimOldest(){if(B.length<2)return;const old=new Set(B.shift().ps);P=P.filter(p=>!old.has(p));S=S.filter(q=>!old.has(q.a)&&!old.has(q.b));dirty=1;noteT=4}
 // only remove objects if the frame rate stays very low for a long time
