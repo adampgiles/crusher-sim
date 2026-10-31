@@ -217,7 +217,321 @@ Object.assign(O,{
 });
 Object.assign(INFO,{ball:'0.6 kg, bouncy rubber',steel:'solid, will not break',brick:'brick wall section',jelly:'wobbly dessert',teapot:'ceramic, brittle',phone:'glass front, metal frame',concrete:'hollow-core block',log:'upright hardwood',cbomb:'iron shell packed with sweets'});
 Object.assign(INFO,{orange:'~200 g',apple:'~180 g',pumpkin:'~5 kg, thick rind',jelly:'wobbly dessert',mug:'ceramic, brittle',plate:'thin ceramic',phone:'glass front, metal back',crate:'wooden planks',concrete:'hollow block',log:'dense hardwood',ice:'brittle ice',anvil:'solid steel, will not break',dumbbell:'solid steel',cbomb:'iron shell packed with sweets',pinata:'paper shell full of sweets',piggy:'ceramic bank full of coins',chest:'wooden chest full of gold',jar:'glass jar of marbles',bomb:'DANGER: explodes when the casing cracks',dynamite:'DANGER: unstable'});
-const OGROUPS=[['Food',['melon','orange','apple','pumpkin','tomato','egg','jelly']],['Everyday',['ball','can','bottle','bulb','mug','teapot','phone']],['Hard',['brick','crate','concrete','log','ice','steel','anvil','dumbbell']],['Containers',['cbomb','pinata','piggy','chest','jar']],['Explosive',['bomb','dynamite']]];
+// ---- Music section: guitar, drum kit, grand piano, mic stand ----
+Object.assign(O,(()=>{
+ const P_=(f,c)=>({f,c:typeof c==='function'?c:()=>c});
+ const U=(...a)=>({f:(x,y)=>a.some(p=>p.f(x,y)),c:(x,y)=>{for(let i=a.length-1;i>=0;i--)if(a[i].f(x,y))return a[i].c(x,y);return[0,0,50,'wood']}});
+ const R_=(x0,x1,y0,y1)=>(x,y)=>x>=x0&&x<=x1&&y>=y0&&y<=y1;
+ const C_=(cx,cy,r)=>(x,y)=>(x-cx)*(x-cx)+(y-cy)*(y-cy)<=r*r;
+ const dseg=(x,y,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));return Math.hypot(x-ax-t*dx,y-ay-t*dy)};
+ const S_=(ax,ay,bx,by,w)=>(x,y)=>dseg(x,y,ax,ay,bx,by)<=w;
+ const RR_=(x0,x1,y0,y1,r)=>(x,y)=>{const cx=(x0+x1)/2,cy=(y0+y1)/2,hw=(x1-x0)/2-r,hh=(y1-y0)/2-r,u=Math.max(Math.abs(x-cx)-hw,0),v=Math.max(Math.abs(y-cy)-hh,0);return u*u+v*v<=r*r};
+ const CHROME=(l)=>[210,8,l||78,'metal'],GOLD=(l)=>[46,85,l||56,'metal'];
+
+ // ---------- acoustic guitar ----------
+ const gw=y=>{
+  if(y<-12||y>92)return -1;
+  if(y<=14)return 26*Math.sqrt(Math.max(0,1-((y-14)/26)**2));
+  if(y<56){const t=(y-14)/42,ss=t*t*(3-2*t);return 26+12*ss-9*Math.pow(Math.sin(Math.PI*t),1.5)}
+  return 38*Math.pow(Math.max(0,1-Math.pow((y-56)/36,2.8)),1/2.8);
+ };
+ const frets=[-72,-62,-53,-45,-38,-32,-27,-23];
+ const guitar=U(
+  P_((x,y)=>Math.abs(x)<=gw(y),(x,y)=>{const e=gw(y)-Math.abs(x);
+   if(e<2.8)return[44,38,86,'wood'];
+   if(e<8)return[12,80,22,'wood'];
+   if(e<15)return[22,85,34,'wood'];
+   return[34,88,50,'wood']}),
+  P_(R_(-5.5,5.5,-84,-8),(x,y)=>{
+   for(const f of frets)if(Math.abs(y-f)<.9)return[210,8,78,'wood'];
+   if(Math.abs(Math.abs(x)-3.2)<.8||Math.abs(x)<.8)return[210,6,72,'wood'];
+   return[22,40,12,'wood']}),
+  P_(R_(-8.5,8.5,-99,-82),[22,38,15,'wood']),
+  P_(R_(-8.5,8.5,-84,-82),[44,20,90,'wood']),
+  P_((x,y)=>{for(const py of[-95,-90,-85])if(Math.hypot(Math.abs(x)-11.5,y-py)<2.8)return true;return false},CHROME(78)),
+  P_(C_(0,42,13),[40,55,66,'wood']),
+  P_(C_(0,42,10),[14,35,5,'wood']),
+  P_(R_(-14,14,66,72),[18,40,12,'wood']),
+  P_(R_(-12,12,65,66.8),[44,10,88,'wood'])
+ );
+
+ // ---------- drum kit on a rug ----------
+ const FL=87,BCY=FL-40;
+ const tom=(cx)=>U(
+  P_(R_(cx-20,cx+20,-16,14),(x,y)=>{
+   if(y<-11.5||y>9.5)return CHROME(80);
+   if(Math.abs(Math.abs(x-cx)-12)<1.2)return CHROME(72);
+   if(Math.abs(x-(cx-14))<3)return[215,70,50,'wood'];
+   return[215,70,38,'wood']}));
+ const drums=U(
+  P_(R_(-125,125,FL,93),(x,y)=>[350,55,Math.floor((x+125)/12)%2?24:30,'wood']),
+  P_(R_(-35,-28,66,FL+2),CHROME(70)),P_(R_(28,35,66,FL+2),CHROME(70)),
+  P_(C_(0,BCY,40),(x,y)=>{const r=Math.hypot(x,y-BCY);
+   if(r>=35)return[215,70,36,'wood'];
+   if(r>=32.5)return CHROME(80);
+   if(r<8)return[215,70,36,'paper'];
+   if(r>=19&&r<21)return[0,0,72,'paper'];
+   return[48,10,93,'paper']}),
+  tom(-24),tom(24),
+  P_(R_(52,90,37,73),(x,y)=>{
+   if(y<41||y>69)return CHROME(80);
+   if(Math.abs(Math.abs(x-71)-12)<1.2)return CHROME(72);
+   if(Math.abs(x-58)<3)return[215,70,50,'wood'];
+   return[215,70,38,'wood']}),
+  P_(R_(56,61,72,FL+2),CHROME(70)),P_(R_(81,86,72,FL+2),CHROME(70)),
+  P_(R_(-80,-48,39,53),(x,y)=>{
+   if(y<42||y>50)return CHROME(84);
+   if(Math.abs(Math.abs(x+64)-10)<1.2)return CHROME(40);
+   return CHROME(66)}),
+  P_(R_(-67,-61,52,FL+2),CHROME(70)),
+  P_(R_(-107,-101,13,FL+2),CHROME(70)),
+  P_(R_(-124,-84,7,14),(x,y)=>Math.abs(y-10.5)<.9?[40,70,32,'metal']:GOLD(y<10.5?60:52)),
+  P_(R_(-109,-99,3,7),GOLD(64)),
+  P_(R_(102,108,-52,FL+2),CHROME(70)),
+  P_((x,y)=>x>=84&&x<=126&&Math.abs(y-(-56+(x-105)*.12))<=3.5,(x,y)=>GOLD(y<-56+(x-105)*.12?62:52)),
+  P_(C_(105,-58,4),GOLD(66))
+ );
+
+ // ---------- grand piano with lid up, plus bench ----------
+ const lidY=x=>28-.507*(x+66);
+ const leg=(cx)=>U(
+  P_((x,y)=>y>=43&&y<=90&&Math.abs(x-cx)<=5-(y-43)/47*1.6,(x,y)=>x<cx-1?[225,16,44,'wood']:[225,20,28,'wood']),
+  P_(C_(cx,89.5,3.7),GOLD(55)));
+ const piano=U(
+  P_(RR_(-70,108,28,44,7),(x,y)=>y<30?[225,16,42,'wood']:[225,20,26,'wood']),
+  leg(-58),leg(22),leg(98),
+  P_(R_(-102,-64,24,36),(x,y)=>{
+   if(y>=31)return[0,0,12,'wood'];
+   const u=(x+102)/5,k=Math.floor(u),b=(k+1)*5-102;
+   if(y<28.5&&[0,1,3,4,5].includes(k%7)&&Math.abs(x-b)<1.5)return[0,0,10,'wood'];
+   if(Math.abs(x-b)<.5)return[0,0,55,'wood'];
+   return[48,8,94,'wood']}),
+  P_((x,y)=>y>=3&&y<=24&&Math.abs(x-(-90+(24-y)*.5))<=3,(x,y)=>y<20&&y>6?[48,15,92,'paper']:[28,40,24,'wood']),
+  P_((x,y)=>x>=-66&&x<=82&&Math.abs(y-lidY(x))<=3.5,(x,y)=>y<lidY(x)-1?[225,16,46,'wood']:[225,20,28,'wood']),
+  P_(R_(58,64,lidY(61),30),[30,40,26,'wood']),
+  P_(RR_(-125,-97,56,65,3),[350,55,32,'wood']),
+  P_(R_(-122,-117,64,93),[30,35,18,'wood']),P_(R_(-105,-100,64,93),[30,35,18,'wood'])
+ );
+
+ // ---------- boom mic stand ----------
+ const mic=U(
+  P_((x,y)=>dseg(x,y,0,74,-50,89.5)<=3.5||dseg(x,y,0,74,50,89.5)<=3.5,CHROME(40)),
+  P_(C_(-50,89.5,3.6),[220,12,34,'metal']),P_(C_(50,89.5,3.6),[220,12,34,'metal']),
+  P_(R_(-3.5,3.5,-49,76),(x)=>CHROME(x<-1?84:68)),
+  P_(C_(0,74,7),[220,12,36,'metal']),
+  P_(S_(7,18,0,18,2.5),[220,12,36,'metal']),P_(C_(10,18,4.5),[220,12,36,'metal']),
+  P_(S_(0,-48,46,-76,3.5),CHROME(70)),
+  P_(S_(0,-48,-14,-40,3.5),CHROME(60)),P_(C_(-17,-38,6),[220,12,38,'metal']),
+  P_(C_(0,-48,5),[220,12,36,'metal']),
+  P_(S_(46,-76,37,-93,4.6),(x,y)=>Math.abs(y+84)<2?CHROME(75):[220,10,40,'metal']),
+  P_(C_(46,-76,5),[220,12,36,'metal']),
+  P_(C_(34,-100,11),(x,y)=>{const r=Math.hypot(x-34,y+100);
+   if(r>8.6)return[215,10,36,'metal'];
+   return((Math.floor(x/2.2)+Math.floor(y/2.2))&1)?[210,8,60,'metal']:[210,8,44,'metal']})
+ );
+
+ return{
+  guitar:{n:'Guitar',e:'🎸',s:4.5,hb:93,R:112,f:guitar.f,c:guitar.c},
+  drums:{n:'Drum kit',e:'🥁',s:5,hb:93,R:130,f:drums.f,c:drums.c},
+  piano:{n:'Grand piano',e:'🎹',s:5,hb:93,R:130,f:piano.f,c:piano.c},
+  mic:{n:'Mic stand',e:'🎤',s:4.5,hb:93,R:120,f:mic.f,c:mic.c}
+ };
+})());
+Object.assign(INFO,{guitar:'acoustic, hardwood body, thin neck',drums:'wood shells, paper heads, thin brass cymbals',piano:'heavy lacquered wood, lid propped open',mic:'thin chrome stand, bends before it breaks'});
+// ---- Overhaul: richer shading and detail for the original objects ----
+(()=>{
+ const sh=(x,y,cx,cy,rx,ry,k)=>-(((x-cx)/rx)*.55+((y-cy)/ry)*.75)*(k||9);
+ const nz=(x,y)=>{const n=Math.sin(x*12.9898+y*78.233)*43758.5453;return n-Math.floor(n)};
+ const cl2=(v,a,b)=>v<a?a:v>b?b:v;
+ const set=(k,o)=>Object.assign(O[k],o);
+ const cyl=(x,cx,hw)=>14-22*Math.abs((x-cx+hw*.35)/(hw*1.4));
+ const fillS=(sw,mat,sat,li,hue,kind)=>(x,y)=>{for(const w of sw){const dx=x-w[0],dy=y-w[1],d=Math.hypot(dx,dy);if(d<w[2]){
+   const l=li+(-(dx*.6+dy*.8)/w[2])*14;
+   if(kind==='coin'){const e=d>w[2]*.72?-9:d<w[2]*.35?6:0;return[46,88,l+e,mat,w[3]]}
+   const st=Math.sin((dx+dy)*.9)>.45;return[hue==null?w[4]:hue,st?30:sat,st?l+22:l,mat,w[3]]}}return null};
+
+ // ---- food ----
+ const seeds=[];for(let i=0;i<9;i++){const a=i*.698+.3,q=i%2?16:31;seeds.push([Math.cos(a)*q*1.25,Math.sin(a)*q*.95,a])}
+ set('melon',{s:7,f:(x,y)=>(x/60)**2+(y/48)**2<=1||(Math.abs(x)<4&&y<-44&&y>-56)||(x>=2&&x<10&&y<-50&&y>-56),c:(x,y)=>{
+  if(y<-44)return[95,45,30,'rind'];
+  const r=rr(x,y,60,48),a=Math.atan2(y,x),d=sh(x,y,0,0,60,48,10);
+  if(r>.9){const st=Math.sin(a*9+Math.sin(a*3)*.8)>0;return[st?122:112,st?48:55,(st?32:20)+d,'rind']}
+  if(r>.84)return[85,35,86+d*.3,'rind'];
+  if(r>.78)return[350,50,78,'rind'];
+  for(const s of seeds){const dx=x-s[0],dy=y-s[1],c=Math.cos(s[2]),sn=Math.sin(s[2]),u=dx*c+dy*sn,v=-dx*sn+dy*c;if((u/4)**2+(v/2.2)**2<1)return[20,30,10,'flesh']}
+  return[354,78,60-r*14+d*.5+nz(Math.round(x/4),Math.round(y/4))*3,'flesh']}});
+ set('orange',{s:5.5,c:(x,y)=>{
+  if(y<-23)return x>3?[112,62,34,'skin']:[95,40,26,'skin'];
+  const r=Math.hypot(x,y),d=sh(x,y,0,0,26,26,12),a=Math.atan2(y,x);
+  if(r>24)return[27,95,(nz(Math.round(x/3),Math.round(y/3))>.88?44:51)+d,'skin'];
+  if(r>21)return[46,55,90+d*.4,'skin'];
+  if(r<4)return[48,45,86,'flesh'];
+  if(Math.abs(Math.sin(a*5))<6.5/Math.max(r,6))return[48,50,89,'flesh'];
+  return[32,98,53+d*.6+(Math.floor((a+Math.PI)/(Math.PI/5))%2?3:0),'flesh']}});
+ set('apple',{s:5.5,c:(x,y)=>{
+  if(y<-23)return Math.abs(x)<2.6?[25,45,24,'wood']:[108,62,38,'skin'];
+  const r=rr(x,y,25,23),d=sh(x,y,0,0,25,23,12);
+  if(r>.9)return[4+(y+23)*.12,78,(Math.sin(x*.6+y*.12)>.55?50:41)+d,'skin'];
+  if(Math.hypot(x/7.5,(y-1)/12)<1){if(Math.hypot(Math.abs(x)-3,y-1)<2)return[22,60,22,'flesh'];return[46,40,76,'flesh']}
+  return[53,60,91+d*.3,'flesh']}});
+ set('pumpkin',{s:8,c:(x,y)=>{
+  if(y<-34)return y<-41?[95,45,24,'wood']:[100,40,28,'wood'];
+  const r=rr(x,y,50,38),d=sh(x,y,0,0,50,38,12);
+  if(r>.86){const rib=Math.abs(Math.sin(Math.asin(cl2(x/50,-1,1))*4));
+   if(rib<.1)return[20,92,32+d*.5,'rind'];return[26,92,50+d+(rib>.8?4:0),'rind']}
+  if(r<.7&&nz(Math.round(x/4),Math.round(y/4))>.93)return[48,45,84,'flesh'];
+  return[31,92,58+d*.3,'flesh']}});
+ set('tomato',{s:5,f:(x,y)=>(x/27)**2+(y/24)**2<=1||(Math.abs(x)<2.5&&y<-23&&y>-30),c:(x,y)=>{
+  if(y<-23)return[100,40,28,'skin'];
+  const r=rr(x,y,27,24),d=sh(x,y,0,0,27,24,12),a=Math.atan2(y+19,x);
+  if(Math.hypot(x,y+19)<8+5*Math.abs(Math.cos(2.5*a))&&y<-10)return[112,62,34+d*.3,'skin'];
+  if(r>.88)return[4,80,45+d,'skin'];
+  if(Math.hypot(x,y-1)<3)return[50,30,86,'flesh'];
+  for(const p of[[0,-9],[8.5,6],[-8.5,6]])if(Math.hypot(x-p[0],y-p[1])<6.5){return nz(Math.round(x/2.5),Math.round(y/2.5))>.7?[50,70,86,'flesh']:[16,72,62,'flesh']}
+  return[4,76,50+d*.4,'flesh']}});
+ set('egg',{c:(x,y)=>{const r=rr(x,y,21,28),d=sh(x,y,0,0,21,28,8);
+  if(r>.8)return[38,45,84+d,'shell'];
+  if(Math.hypot(x+4,y+6)<3)return[50,90,76,'goo'];
+  if(r<.42)return[44,95,52+d*.5,'goo'];
+  return[50,22,97,'goo']}});
+ set('jelly',{s:5.5,c:(x,y)=>{
+  if(y<-20)return Math.hypot(x+1.5,y+26.5)<1.8?[0,0,95,'skin']:[352,85,40-(y+30)*.4,'skin'];
+  const dr=-13+4*Math.sin(x*.55)+(Math.abs(x)>11?7:0);
+  if(y<dr)return[26,88,26+(y+20)*.6+(Math.abs(x+8)<2?10:0),'jelly'];
+  return[46,88,64+sh(x,y,0,0,18,20,10)+(x<-11?6:0),'jelly']}});
+
+ // ---- everyday ----
+ set('ball',{s:6,c:(x,y)=>{const r=Math.hypot(x,y),d=sh(x,y,0,0,42,42,8);
+  const seam=Math.abs(x)<2.2||Math.abs(y)<2.2||Math.abs(Math.hypot(Math.abs(x)-44,y)-30)<2.2;
+  if(r>39.5||seam)return[20,45,14+d*.3,'rubber'];
+  return[22,92,46+d-(nz(Math.round(x/3.2),Math.round(y/3.2))>.82?5:0),'rubber']}});
+ set('can',{fill:(x,y)=>y>-12?(y<-6?[35,40,80,'goo']:[18,75,17+(nz(Math.round(x/3),Math.round(y/3))>.93?18:0),'goo']):null,c:(x,y)=>{
+  const ay=Math.abs(y),cy2=cyl(x,0,22);
+  if(ay>33)return Math.abs(x-3)<6&&y<-33?[210,8,40,'metal']:[210,8,72+cy2*.5,'metal'];
+  if(ay>30.5)return[210,10,46,'metal'];
+  if(Math.abs(y-5*Math.sin(x/5))<4.5)return[0,0,93+cy2*.1,'metal'];
+  return[0,82,40+cy2*.8,'metal']}});
+ set('bottle',{fill:(x,y)=>y>8?[200,70,60,'goo']:null,c:(x,y)=>{
+  if(y<-56)return[Math.abs(Math.round(x/2))%2?40:0,70,Math.abs(Math.round(x/2))%2?55:40,'metal'];
+  const hi=x<-15?14:x>16?-10:0;
+  if(y>8&&y<40&&Math.abs(x)<22)return[45,25,90+hi*.4,'glass'];
+  return[135,50,34+hi+(y<-14?6:0),'glass']}});
+ set('bulb',{fill:(x,y)=>{if(y<-16||y>0)return null;if(y<-11&&Math.abs(x)<6)return[46,100,72,'metal'];return Math.abs(Math.abs(x)-4)<2?[30,15,48,'metal']:null},c:(x,y)=>{
+  if(y>36)return[40,10,22,'metal'];
+  if(y>=22)return[40,8,(Math.floor(y/3.5)%2?62:46)+cyl(x,0,10)*.4,'metal'];
+  const d=sh(x,y,0,-18,26,26,10);
+  if(Math.hypot(x+10,y+30)<4)return[50,20,98,'glass'];
+  return[52,38,86+d*.6,'glass']}});
+ set('mug',{s:4.5,fill:(x,y)=>y>-12?(y<-8?[30,30,82,'goo']:[24,70,20,'goo']):null,c:(x,y)=>{
+  const d=sh(x,y,0,0,20,20,8);
+  if(Math.abs(y)<3.5)return[0,72,48+d,'ceramic'];
+  return[200,10,94+d*.4+(x<-10?3:0),'ceramic']}});
+ set('teapot',{s:5.5,c:(x,y)=>{
+  const d=sh(x,y,0,6,26,20,8);
+  if(Math.hypot(x,y+22)<4.2)return[46,80,56,'ceramic'];
+  if(y<-12&&y>-19)return[46,75,Math.abs(y+14)<1.6?62:50,'ceramic'];
+  if(Math.abs(y-6)<2.4||Math.abs(y-15)<1.1)return[215,62,50,'ceramic'];
+  const gx=Math.round(x/6),gy=Math.round((y-1)/6);
+  if((gx+gy)%2===0&&Math.hypot(x-gx*6,y-1-gy*6)<1.9&&y>-6&&y<12)return[215,62,56,'ceramic'];
+  if((x>=22||x<-22)&&nz(Math.round(x/3),Math.round(y/3))>.5)return[210,45,88,'ceramic'];
+  return[210,12,95+d*.4,'ceramic']}});
+ const icons=[-12,-4,4,12],rowsY=[-22,-13,-4,5,14];
+ set('phone',{s:4.5,c:(x,y)=>{const ax=Math.abs(x),ay=Math.abs(y);
+  if(ax>16.2||ay>36.2)return[210,8,(x<0?76:66),'metal'];
+  if(y>-35&&y<-31&&ax<6)return[0,0,4,'glass'];
+  if(y>33&&ax<8)return[0,0,92,'glass'];
+  if(y>=22&&y<=34)for(let i=0;i<4;i++)if(Math.abs(x-icons[i])<2.8&&Math.abs(y-28)<2.8)return[(i*83+20)%360,78,60,'glass'];
+  for(let r=0;r<5;r++)for(let i=0;i<4;i++)if(Math.abs(x-icons[i])<2.8&&Math.abs(y-rowsY[r])<2.8)return[(r*4+i)*47%360,75,58,'glass'];
+  if(y>=22&&y<=34)return[220,20,80,'glass'];
+  return[255-(y+36)*.5,62,28+(y+36)*.25,'glass']}});
+
+ // ---- hard ----
+ set('brick',{s:5.5,c:(x,y)=>{const row=Math.floor((y+28)/14),off=row%2?0:11,u=x+44+off,bi=Math.floor(u/22),n=nz(bi,row);
+  if((y+28)%14<3.2||u%22<3.2)return[40,10,66+nz(Math.round(x/3),Math.round(y/3))*8,'stone'];
+  return[8+n*8,56,33+n*8+sh(x,y,0,0,44,28,3)+(((y+28)%14)<5?4:0),'stone']}});
+ set('crate',{s:5.5,c:(x,y)=>{const ax=Math.abs(x),ay=Math.abs(y);
+  for(const sx2 of[-1,1])for(const sy of[-1,1])if(Math.hypot(x-sx2*29.5,y-sy*25.5)<2)return[210,8,72,'metal'];
+  if(ax>28||ay>24||Math.abs(ax-ay*1.25)<5)return[28,52,23+(nz(Math.round(x/4),Math.round(y/2))>.8?4:0),'wood'];
+  const g=Math.sin(x*.9+Math.floor((y+28)/9)*3)>.8;
+  return[30,52,(Math.abs(Math.round(y/9))%2?42:36)-(g?5:0),'wood']}});
+ set('concrete',{s:5.5,c:(x,y)=>{const n=nz(Math.round(x/2.5),Math.round(y/2.5));
+  if(y<-18)return[0,0,62,'stone'];
+  return[215,4,48+n*14+(n>.92?14:0)+sh(x,y,0,0,40,22,4),'stone']}});
+ set('log',{c:(x,y)=>{
+  if(y<-27){const r=Math.hypot(x,(y+30)*2.2);if(r<3)return[22,50,24,'wood'];return[34,50,Math.round(r/3.5)%2?64:55,'wood']}
+  const f=Math.sin(x*1.5+nz(Math.round(x/3),0)*3);
+  if(nz(Math.round(x/5),Math.round(y/6))>.97)return[105,40,30,'wood'];
+  return[25,45,(f>.4?20:29)+cyl(x,0,20)*.5,'wood']}});
+ set('ice',{s:4.5,c:(x,y)=>{
+  if(Math.abs(x+y+8)<3||Math.abs(x+y-12)<1.3)return[190,25,97,'glass'];
+  if(Math.abs(x-y*.6+6)<.8||Math.abs(x*.5+y-9)<.7)return[195,35,92,'glass'];
+  if(Math.hypot(x-8,y+10)<2.5||Math.hypot(x+9,y-8)<1.8)return[195,40,96,'glass'];
+  if(Math.abs(x)>19||Math.abs(y)>19)return[195,50,88,'glass'];
+  return[200,62,78+sh(x,y,0,0,22,22,8),'glass']}});
+ set('steel',{s:5.5,c:(x,y)=>{
+  for(const p of[[-5,-12],[5,-12],[0,-1]])if(Math.hypot(x-p[0],y-p[1])<3.8)return[0,0,3,'steel'];
+  const r=Math.hypot(x,y),a=Math.atan2(y,x),d=sh(x,y,0,0,32,32,12);
+  if(Math.hypot(x+17,y+17)<4.5)return[225,30,80,'steel'];
+  return[225+25*Math.sin(a*2+r*.15),72,34+d+(Math.sin(a*3-r*.2)>.7?5:0),'steel']}});
+ set('anvil',{c:(x,y)=>{
+  if(x>=17&&x<=22&&y>=-22&&y<=-16)return[0,0,10,'steel'];
+  const d=sh(x,y,0,0,50,22,6);
+  if(y<-19)return[220,8,56+d,'steel'];
+  if(y<-8&&x>=-54)return[220,8,44+d+(x<-30?6:0),'steel'];
+  if(y>=10)return[220,8,(y<13?52:38)+d*.5,'steel'];
+  return[220,8,34+Math.abs(x)*-.2+d*.5,'steel']}});
+ set('dumbbell',{c:(x,y)=>{const ax=Math.abs(x),pr=Math.hypot(ax-34,y),d=sh(x,y,0,0,50,16,8);
+  if(pr<16){if(pr>13.5)return[215,8,26+d*.4,'steel'];if(pr>10.5&&pr<11.7)return[215,8,20,'steel'];
+   if(pr<4)return[215,8,56,'steel'];return[215,8,42+d,'steel']}
+  if(ax>=19&&ax<23)return[215,8,40+d*.3,'steel'];
+  return[215,6,(Math.round(x/2.2)%2?60:50)+cyl(y,0,5)*.4,'steel']}});
+
+ // ---- containers ----
+ const candyStripe=(x,y,d)=>(Math.floor((x+y+200)/9)%2?[330,80,62+d,'iron']:[0,0,90+d*.4,'iron']);
+ set('cbomb',{fill:fillS(sweets(7,24,7.5),'candy',85,58),c:(x,y)=>{
+  if(y<-42)return Math.abs(x)<2.5&&y<-49?[45,100,62,'wood']:[28,50,35,'wood'];
+  if(y<-36)return[220,10,56,'metal'];
+  return candyStripe(x,y,sh(x,y,0,0,40,40,12))}});
+ set('pinata',{fill:fillS(sweets(6,15,6),'candy',85,58),c:(x,y)=>{
+  const a=Math.atan2(y,x),r=Math.hypot(x,y),d=sh(x,y,0,0,44,38,8);
+  return[(Math.floor((a+Math.PI)/.42)*47)%360,85,(Math.floor(r/6)%2?50:62)+d,'paper']}});
+ set('piggy',{fill:fillS(sweets(6,20,6,1.3,.7),'coin',90,52,45,'coin'),c:(x,y)=>{
+  const d=sh(x,y,0,0,44,30,10);
+  if(Math.abs(x)<10&&Math.abs(y+28)<2)return[345,40,25,'ceramic'];
+  if(x>=14&&x<=26&&y<-24)return[345,60,66+d*.5,'ceramic'];
+  if(Math.hypot(x-46,y-3)<1.8||Math.hypot(x-46,y-9)<1.8)return[345,40,40,'ceramic'];
+  if(x>34)return[345,55,70+d*.5,'ceramic'];
+  if(y>=34)return[345,50,58,'ceramic'];
+  return[345,65,82+d,'ceramic']}});
+ set('chest',{fill:fillS(sweets(10,30,6.5,1.2,.8),'coin',90,52,45,'coin'),c:(x,y)=>{
+  const ax=Math.abs(x),d=sh(x,y,0,0,40,30,6);
+  if(ax<6&&y>-8&&y<10)return Math.abs(x)<1.4&&y>-1&&y<4?[25,50,12,'coin']:[48,90,55+d*.4,'coin'];
+  if(Math.hypot(ax-33,Math.abs(y-2)-0)<1.8&&false)return[0,0,0,'metal'];
+  if(Math.abs(ax-28)<3)return[220,12,34+d*.5,'metal'];
+  if(Math.abs(y)<1.8)return[25,50,16,'wood'];
+  return[28,55,(Math.abs(Math.round(y/8))%2?32:38)+d+(nz(Math.round(x/4),Math.round(y/8))>.85?-4:0),'wood']}});
+ set('jar',{fill:fillS(sweets(6,16,8,1,1.4),'glass',70,55),c:(x,y)=>{
+  if(y<-32)return[46,75,(Math.round(x/2.4)%2?52:44),'metal'];
+  if(y<-24)return[190,30,70,'glass'];
+  return[190,32,(x<-18?90:80)+(x>20?-10:0),'glass']}});
+
+ // ---- explosive ----
+ set('bomb',{c:(x,y)=>{
+  if(y<-46)return[48,100,62,'tnt'];
+  if(y<-34)return[30,40,Math.round(y/2)%2?30:38,'wood'];
+  if(y<-26)return[46,70,48,'iron'];
+  if(Math.hypot(x+13,y-0)<6)return[220,10,66,'iron'];
+  return[220,10,24+sh(x,y,0,6,34,34,16),'iron']}});
+ set('dynamite',{c:(x,y)=>{
+  const g=x<-9?1:x<9?2:3,cx=g===1?-16:g===2?0:16,cy2=cyl(x,cx,7);
+  if(y<-34)return[44,100,60,'tnt',2];
+  if(y<-26)return[30,40,35,'wood',2];
+  if(Math.abs(y)<4)return[45,18,88+cy2*.2,'tnt',g];
+  if(Math.abs(y-17)<1.2||Math.abs(y+17)<1.2)return[35,45,40,'tnt',g];
+  if(y<-20||y>22)return[4,70,30+cy2*.5,'tnt',g];
+  return[4,82,44+cy2*.8,'tnt',g]}});
+})();
+const OGROUPS=[['Food',['melon','orange','apple','pumpkin','tomato','egg','jelly']],['Everyday',['ball','can','bottle','bulb','mug','teapot','phone']],['Hard',['brick','crate','concrete','log','ice','steel','anvil','dumbbell']],['Containers',['cbomb','pinata','piggy','chest','jar']],['Music',['guitar','drums','piano','mic']],['Explosive',['bomb','dynamite']]];
 for(const [gn,ks] of OGROUPS){const l=document.createElement('span');l.className='gl nm';l.textContent=gn;chips.appendChild(l);for(const k of ks){const b=document.createElement('button');b.textContent=O[k].e+' '+O[k].n;b.className='nm';b.onclick=()=>{initAudio();spawn(k)};chips.appendChild(b)}}
 
 function spawn(k){
