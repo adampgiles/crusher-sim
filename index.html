@@ -360,6 +360,120 @@ Object.assign(O,(()=>{
  };
 })());
 Object.assign(INFO,{guitar:'acoustic, hardwood body, thin neck',drums:'wood shells, paper heads, thin brass cymbals',piano:'heavy lacquered wood, lid propped open',mic:'thin chrome stand, bends before it breaks'});
+// ---- More instruments: saxophone, violin, trumpet, xylophone, congas ----
+Object.assign(O,(()=>{
+ const P_=(f,c)=>({f,c:typeof c==='function'?c:()=>c});
+ const U=(...a)=>({f:(x,y)=>a.some(p=>p.f(x,y)),c:(x,y)=>{for(let i=a.length-1;i>=0;i--)if(a[i].f(x,y))return a[i].c(x,y);return[0,0,50,'wood']}});
+ const R_=(x0,x1,y0,y1)=>(x,y)=>x>=x0&&x<=x1&&y>=y0&&y<=y1;
+ const C_=(cx,cy,r)=>(x,y)=>(x-cx)*(x-cx)+(y-cy)*(y-cy)<=r*r;
+ const dseg=(x,y,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));return Math.hypot(x-ax-t*dx,y-ay-t*dy)};
+ const S_=(ax,ay,bx,by,w)=>(x,y)=>dseg(x,y,ax,ay,bx,by)<=w;
+ const sd=(x,y,ax,ay,bx,by)=>((x-ax)*(by-ay)-(y-ay)*(bx-ax))/Math.hypot(bx-ax,by-ay);
+ const cy=(u,w)=>14-22*Math.abs((u+w*.35)/(w*1.4));
+ const tube=(ax,ay,bx,by,w,h,s,l,m)=>P_(S_(ax,ay,bx,by,w),(x,y)=>[h,s,l+cy(sd(x,y,ax,ay,bx,by),w),m||'metal']);
+ const ring=(cx,cy0,r0,r1,side,h,s,l)=>P_((x,y)=>{const r=Math.hypot(x-cx,y-cy0);return r>=r0&&r<=r1&&side(x,y)},(x,y)=>[h,s,l+cy(Math.hypot(x-cx,y-cy0)-(r0+r1)/2,(r1-r0)/2),'metal']);
+ const CH=l=>[210,8,l,'metal'];
+ const nz=(x,y)=>{const n=Math.sin(x*12.9898+y*78.233)*43758.5453;return n-Math.floor(n)};
+ const stand=(x0,x1,y0,y1,w)=>[tube(x0,y0,x0,y1,w,210,8,66),tube(x0,y1-3,x0-38,93,w-.4,210,8,58),tube(x0,y1-3,x0+38,93,w-.4,210,8,58)];
+
+ // ---------- alto saxophone on a stand ----------
+ const sbw=y=>5+(y+82)/128*5.5, bhw=y=>10+12*Math.pow(Math.max(0,(46-y)/66),2.2);
+ const sax=U(
+  ...stand(10,10,70,90,3.6),
+  tube(-10,-82,-20,-98,4,44,88,50),tube(-20,-98,-44,-94,3.8,44,88,50),
+  tube(-44,-94,-58,-90,4.6,220,8,15),P_(R_(-52,-47,-99,-86),[46,70,60,'metal']),
+  P_((x,y)=>y>=-82&&y<=46&&Math.abs(x+10)<=sbw(y),(x,y)=>[44,88,50+cy(x+10,sbw(y)),'metal']),
+  ring(10,46,10,30,(x,y)=>y>=46,44,88,50),
+  P_((x,y)=>y>=-20&&y<=46&&Math.abs(x-30)<=bhw(y),(x,y)=>[44,88,50+cy(x-30,bhw(y)),'metal']),
+  P_((x,y)=>y>=-28&&y<-20&&Math.abs(x-30)<=bhw(-20)+(-20-y)*.5,[46,75,72,'metal']),
+  P_((x,y)=>((x-30)/20)**2+((y+27)/4.6)**2<=1,[28,60,16,'metal']),
+  ...[-68,-54,-40,-26,-12,2,16].map((y,i)=>P_(C_(-10,y,3.4),(x,yy)=>Math.hypot(x+10,yy-y)<1.8?[48,15,94,'metal']:[30,60,34,'metal'])),
+  ...[30,16,2].map(y=>P_(C_(30,y,4.6),(x,yy)=>Math.hypot(x-30,yy-y)<2.4?[48,15,94,'metal']:[30,60,34,'metal'])),
+  P_(C_(-10,56,3),[30,60,34,'metal']),P_(C_(10,58,3.2),[30,60,34,'metal'])
+ );
+
+ // ---------- violin and bow on a stand ----------
+ const vb=(x,y)=>(x/22)**2+((y+14)/20)**2<=1||(x/28)**2+((y-34)/25)**2<=1||(Math.abs(x)<=16&&y>=-14&&y<=34);
+ const vsh=(x,y)=>-(x/30*.55+y/50*.75)*10;
+ const violin=U(
+  tube(0,58,-34,93,3,215,10,26),tube(0,58,34,93,3,215,10,26),
+  P_(vb,(x,y)=>{const d=vsh(x,y);
+   if(!vb(x*1.13,(y-12)*1.1+12))return[20,60,10,'wood'];
+   if(Math.abs(Math.abs(x)-(11+(y-13)*.08))<1.7&&y>2&&y<25)return[20,40,5,'wood'];
+   if(Math.abs(x)<=9&&y>=22&&y<=26)return[36,50,80,'wood'];
+   if(Math.abs(x)<=5&&y>=38)return[220,10,10,'wood'];
+   if(((x+14)/9)**2+((y-48)/7)**2<=1&&x<-7)return[20,30,13,'wood'];
+   const g=Math.sin(x*2.4+y*.5+nz(Math.round(y/3),0))>.55?6:0;
+   return[22,82,38+d+g,'wood']}),
+  P_(R_(-3.6,3.6,-86,-14),[36,55,68,'wood']),
+  P_(R_(-4.6,4.6,-82,20),(x)=>(Math.abs(Math.abs(x)-2.5)<.5?[210,8,62,'metal']:[20,20,9,'wood'])),
+  P_(R_(-5.5,5.5,-101,-86),[24,60,20,'wood']),P_(R_(-4.6,4.6,-86,-83),[44,20,90,'wood']),
+  P_((x,y)=>Math.hypot(Math.abs(x)-8.5,y+95)<3.1||Math.hypot(Math.abs(x)-8.5,y+89)<3.1,[20,30,13,'wood']),
+  P_(C_(0,-108,7),(x,y)=>{const r=Math.hypot(x,y+108);return r>3&&r<4.4?[20,60,14,'wood']:[24,78,38-(x*.6+y*.8)*.5,'wood']}),
+  P_(S_(46,-100,54,86,2.3),[20,70,26,'wood']),P_(C_(45,-101,3.4),[20,70,26,'wood']),
+  P_(S_(51,-90,59,78,1.9),[45,25,90,'paper']),
+  P_(R_(52,61,76,90),[220,10,10,'wood']),P_(R_(53.5,59.5,80,85),[46,85,56,'metal'])
+ );
+
+ // ---------- trumpet on a stand ----------
+ const bw=x=>3.4+26*Math.pow(Math.max(0,(x-56)/58),2.3);
+ const BR=l=>[46,92,l,'metal'];
+ const trumpet=U(
+  tube(10,50,10,91,3.4,210,8,66),tube(10,88,-28,93,3,210,8,58),tube(10,88,48,93,3,210,8,58),
+  tube(86,10,86,91,3,210,8,66),tube(86,88,66,93,3,210,8,58),tube(86,88,106,93,3,210,8,58),
+  tube(-84,-24,-72,-24,4.6,210,8,76),P_(C_(-86,-24,5.8),CH(80)),
+  tube(-72,-24,34,-24,3.4,46,92,52),tube(-36,20,34,20,3.4,46,92,52),
+  ring(-36,-2,19,26,(x)=>x<=-36,46,92,52),ring(34,-2,19,26,(x)=>x>=34,46,92,52),
+  P_((x,y)=>x>=56&&x<=114&&Math.abs(y+2)<=bw(x),(x,y)=>BR(52+cy(y+2,bw(x)))),
+  P_(R_(110,115,-2-bw(114),-2+bw(114)),[46,70,78,'metal']),
+  ring(15,38,5.5,11.5,(x,y)=>y>=38,46,92,48),tube(6.5,24,6.5,38,3.2,46,92,48),tube(23.5,24,23.5,38,3.2,46,92,48),
+  ...[-2,9,20].flatMap(vx=>[
+   P_(R_(vx-3.7,vx+3.7,-34,26),(x)=>[46,30,60+cy(x-vx,3.7),'metal']),
+   P_(R_(vx-4.9,vx+4.9,-37,-31),BR(44)),P_(R_(vx-4.9,vx+4.9,22,29),BR(44)),
+   P_(R_(vx-1.8,vx+1.8,-44,-37),CH(76)),P_(C_(vx,-46,4),[48,18,92,'metal'])])
+ );
+
+ // ---------- toy xylophone with two mallets ----------
+ const HUES=[2,22,46,110,170,212,262,318];
+ const bars=HUES.map((h,i)=>{const yc=44-16*i,hw=(100-9*i)/2;
+  return P_(R_(-hw,hw,yc-5.5,yc+5.5),(x,y)=>{const ly=(y-yc)/5.5,e=hw-Math.abs(x);
+   if(e>3&&e<6.5&&Math.abs(y-yc)<1.7)return[25,20,10,'wood'];
+   return[h,74,52-ly*9-(e<2.6?9:0)+(nz(Math.round(x/3),i)>.8?3:0),'wood']})});
+ const xylo=U(
+  tube(-54,62,-68,91,3.5,28,55,30,'wood'),tube(54,62,68,91,3.5,28,55,30,'wood'),
+  tube(-62.7,80,62.7,80,2.9,28,55,26,'wood'),
+  P_(R_(-74,-61,90,93),[220,10,14,'rubber']),P_(R_(61,74,90,93),[220,10,14,'rubber']),
+  tube(-54,62,-20,-74,3.5,28,60,36,'wood'),tube(54,62,20,-74,3.5,28,60,36,'wood'),tube(-54,62,54,62,3.5,28,60,32,'wood'),
+  ...bars,
+  tube(78,91,94,-38,2.3,28,60,36,'wood'),P_(C_(95,-44,6.6),(x,y)=>[356,80,50-((x-95)*.6+(y+44)*.8)*3,'rubber']),
+  tube(92,91,112,-6,2.3,28,60,36,'wood'),P_(C_(113,-12,6.6),(x,y)=>[212,70,52-((x-113)*.6+(y+12)*.8)*3,'rubber'])
+ );
+
+ // ---------- conga pair on a bracket ----------
+ const conga=(cx,top,k,hue,l0)=>{
+  const hwf=y=>{const t=Math.max(0,Math.min(1,(y-top)/(93-top)));return k*(t<.45?22+5*(t/.45):27-10*Math.pow((t-.45)/.55,1.3))};
+  const h0=hwf(top);
+  return[
+   P_((x,y)=>y>=top+5&&y<=93&&Math.abs(x-cx)<=hwf(y),(x,y)=>{const hw=hwf(y),u=(x-cx)/hw,st=Math.floor((u+1)*3.5);
+    return[hue+(st%2?3:0),68,l0+cy(x-cx,hw)*.9+(st%2?3:-1)-(y-top)*.03,'wood']}),
+   P_(R_(cx-hwf(88)-1,cx+hwf(88)+1,86,93),[220,10,18,'metal']),
+   ...[-.8,-.4,0,.4,.8].map(u=>P_(R_(cx+u*h0*.95-1.5,cx+u*h0*.95+1.5,top+14,top+46),CH(70))),
+   P_((x,y)=>y>=top+8&&y<=top+14&&Math.abs(x-cx)<=hwf(y)+.8,(x,y)=>CH(60+cy(x-cx,hwf(y))*.9)),
+   P_((x,y)=>((x-cx)/h0)**2+((y-top-3)/5.6)**2<=1,(x,y)=>{const e=((x-cx)/h0)**2+((y-top-3)/5.6)**2;return e>.7?CH(76):[40,28,90-e*8,'paper']})]};
+ const congas=U(
+  ...conga(-30,-44,1,8,40),...conga(34,-14,.9,28,50),
+  tube(-30,32,34,32,2.7,210,8,66)
+ );
+
+ return{
+  sax:{sn:'sax',n:'Saxophone',e:'🎷',s:4.5,hb:93,R:112,f:sax.f,c:sax.c},
+  violin:{sn:'violin',n:'Violin & bow',e:'🎻',s:4.5,hb:93,R:116,f:violin.f,c:violin.c},
+  trumpet:{sn:'trumpet',n:'Trumpet',e:'🎺',s:4.5,hb:93,R:125,f:trumpet.f,c:trumpet.c},
+  xylo:{sn:'xylo',n:'Xylophone',e:'🎶',s:4.5,hb:93,R:122,f:xylo.f,c:xylo.c},
+  congas:{sn:'congas',n:'Conga pair',e:'🪘',s:5,hb:93,R:105,f:congas.f,c:congas.c}
+ };
+})());
+Object.assign(INFO,{sax:'thin brass tubing, pearl keys',violin:'spruce and maple, very fragile',trumpet:'thin brass, valves and slide loops',xylo:'wooden bars, rubber mallet heads',congas:'hardwood shells, skin heads, steel bracket'});
 // ---- Overhaul: richer shading and detail for the original objects ----
 (()=>{
  const sh=(x,y,cx,cy,rx,ry,k)=>-(((x-cx)/rx)*.55+((y-cy)/ry)*.75)*(k||9);
@@ -553,7 +667,7 @@ Object.assign(INFO,{guitar:'acoustic, hardwood body, thin neck',drums:'wood shel
   if(y<-20||y>22)return[4,70,30+cy2*.5,'tnt',g];
   return[4,82,44+cy2*.8,'tnt',g]}});
 })();
-const OGROUPS=[['Food',['melon','orange','apple','pumpkin','tomato','egg','jelly']],['Everyday',['ball','can','bottle','bulb','mug','teapot','phone']],['Hard',['brick','crate','concrete','log','ice','steel','anvil','dumbbell']],['Containers',['cbomb','pinata','piggy','chest','jar']],['Music',['guitar','drums','piano','mic']],['Explosive',['bomb','dynamite']]];
+const OGROUPS=[['Food',['melon','orange','apple','pumpkin','tomato','egg','jelly']],['Everyday',['ball','can','bottle','bulb','mug','teapot','phone']],['Hard',['brick','crate','concrete','log','ice','steel','anvil','dumbbell']],['Containers',['cbomb','pinata','piggy','chest','jar']],['Music',['guitar','drums','piano','mic','sax','violin','trumpet','xylo','congas']],['Explosive',['bomb','dynamite']]];
 for(const [gn,ks] of OGROUPS){const l=document.createElement('span');l.className='gl nm';l.textContent=gn;chips.appendChild(l);for(const k of ks){const b=document.createElement('button');b.textContent=O[k].e+' '+O[k].n;b.className='nm';b.onclick=()=>{initAudio();spawn(k)};chips.appendChild(b)}}
 
 function spawn(k){
@@ -640,6 +754,31 @@ function drumHit(n,t,o){
   else{nzb(t,rnd(4500,6000),.5,'bandpass',.4,.07,o,2500);ring(t,rnd(320,420),[1,1.8,2.6],.4,.012,o)}}
  else{nzb(t,rnd(900,1400),1.5,'bandpass',.05,.12,o);tn(t,rnd(130,170),.12,.1,o,'sine',85)}}
 function micHit(t,o){nzb(t,rnd(1500,2200),1.2,'bandpass',.08,.1,o);ring(t,rnd(300,450),[1,2.76],.25,.018,o)}
+function voice(t,o,f,ty,dur,vol,att,f0,f1,vr,vd,det){
+ const g=ac.createGain(),fl=ac.createBiquadFilter();fl.type='lowpass';fl.Q.value=1.8;
+ fl.frequency.setValueAtTime(f0,t);fl.frequency.linearRampToValueAtTime(f1,t+att+.04);fl.frequency.exponentialRampToValueAtTime(f0,t+dur);
+ g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+ fl.connect(g);g.connect(o);
+ const lf=ac.createOscillator(),lg=ac.createGain();lf.frequency.value=vr;lg.gain.value=f*vd;lf.connect(lg);lf.start(t);lf.stop(t+dur+.05);
+ for(const d of det){const os=trk(ac.createOscillator());os.type=ty;os.frequency.value=f;os.detune.value=d;lg.connect(os.frequency);os.connect(fl);os.start(t);os.stop(t+dur+.05)}}
+function saxNote(t,o,v){const f=[196,233.1,261.6,293.7,349.2,392][Math.random()*6|0];
+ voice(t,o,f,'sawtooth',.7,v||.06,.07,650,2300,5.5,.014,[0,-3]);nzb(t,2800,.7,'bandpass',.35,.02,o)}
+function pluck(t,o,f,v){const s=trk(ac.createBufferSource());s.buffer=ksBuf(f);const g=ac.createGain();g.gain.value=v;s.connect(g);g.connect(o);s.start(t)}
+function violinNote(t,o,v){const f=[293.7,329.6,392,440,493.9,587.3,659.3][Math.random()*7|0];
+ if(Math.random()<.3){pluck(t,o,f,(v||.09)*1.2);return}
+ voice(t,o,f,'sawtooth',.9,v||.05,.15,900,3000,6,.008,[-5,5]);nzb(t,3800,.7,'bandpass',.5,.012,o)}
+function trumpetBlare(t,o,v){const f=[233.1,311.1,349.2,392,466.2,622.3][Math.random()*6|0];
+ voice(t,o,f,'sawtooth',.55,v||.06,.03,600,4200,0,0,[0,4]);voice(t,o,f*2,'square',.4,(v||.06)*.25,.03,1500,3500,0,0,[0]);nzb(t,2200,2,'bandpass',.06,.035,o)}
+const XN=[523.25,587.33,659.25,698.46,783.99,880,987.77,1046.5];
+function xyloNote(n,ry,t,o){
+ if(n==='wood'){const f=XN[Math.max(0,Math.min(7,Math.round((44-ry)/16)))];tn(t,f,.55,.1,o,'sine',null,.003);tn(t,f*3.95,.12,.04,o,'sine');tn(t,f*9.2,.05,.012,o,'sine');nzb(t,3500,1,'bandpass',.02,.06,o);return true}
+ if(n==='rubber'){nzb(t,500,1,'lowpass',.05,.1,o);return true}return false}
+function congaHit(n,x,t,o){const lo=x<0;
+ if(n==='paper'){const f=lo?rnd(150,170):rnd(210,240);
+  if(Math.random()<.4){nzb(t,rnd(1800,2600),1.2,'bandpass',.07,.13,o);tn(t,f*1.7,.12,.06,o,'sine',f*1.3)}
+  else{tn(t,f*1.45,.28,.2,o,'sine',f);tn(t,f*2.9,.12,.03,o,'sine',f*2.2);nzb(t,900,.8,'bandpass',.03,.05,o)}}
+ else if(n==='wood'){tn(t,rnd(260,330),.07,.09,o,'sine',190);nzb(t,rnd(1400,2000),1.5,'bandpass',.04,.07,o)}
+ else ring(t,rnd(900,1300),[1,2.3,3.6],.25,.02,o)}
 function instSnd(m,p){
  const now=performance.now();if(now-(instT[p.sn]||0)<200)return false;
  const t=ac.currentTime,o=pan(p.x),n=m.nm;let ok=true;
@@ -648,6 +787,11 @@ function instSnd(m,p){
   case'guitar':if(n==='wood')guitarStrum(t,o);else ok=false;break;
   case'drums':drumHit(n,t,o);break;
   case'mic':micHit(t,o);break;
+  case'sax':if(n==='metal')saxNote(t,o);else ok=false;break;
+  case'violin':if(n==='wood')violinNote(t,o);else ok=false;break;
+  case'trumpet':if(n==='metal')trumpetBlare(t,o);else ok=false;break;
+  case'xylo':ok=xyloNote(n,p.ry,t,o);break;
+  case'congas':congaHit(n,p.rx,t,o);break;
   default:ok=false}
  if(ok)instT[p.sn]=now;return ok}
 function matSnd(m,x){
@@ -682,6 +826,11 @@ function spawnSnd(o){if(!ac||ac.state==='suspended')return;try{const t=ac.curren
   case'guitar':guitarStrum(t,d,.06);break;
   case'drums':tn(t,120,.2,.12,d,'sine',55);break;
   case'mic':nzb(t,250,1,'lowpass',.08,.1,d);break;
+  case'sax':saxNote(t,d,.035);break;
+  case'violin':violinNote(t,d,.03);break;
+  case'trumpet':trumpetBlare(t,d,.035);break;
+  case'xylo':xyloNote('wood',Math.random()*80-30,t,d);break;
+  case'congas':congaHit('paper',-1,t,d);break;
   default:nzb(t,rnd(250,400),1,'lowpass',.07,.07,d);tn(t,rnd(90,130),.07,.04,d,'sine',60)}}catch(e){}}
 // press ambience: soft hydraulic hum, gentle hiss on release, faint creaks under load
 function ambience(dt){
