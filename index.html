@@ -156,7 +156,8 @@ body.rm *{transition:none!important;animation:none!important}
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const W=360,H=520,FY=440,XL=40,XR=320,RMIN=80;let G=2000;
 const WW=1800,Z=.82,WB_PY=26,WB_L=372;let SS=0,hx=180,hdx=0,dirW=1,BL=40,BR=320,WB=null,mvL=0,mvR=0,camx=0,camy=-120;
-const sp=document.createElement('canvas');sp.width=W;sp.height=H;const sx=sp.getContext('2d');
+let K=1;const sp=document.createElement('canvas');sp.width=W;sp.height=H;const sx=sp.getContext('2d');
+{const _di=cx.drawImage;cx.drawImage=function(im,a,b,c,d,e,f,g,h){const k=im&&im._k;if(k){if(arguments.length===3)return _di.call(this,im,a,b,im.width/k,im.height/k);if(arguments.length===9)return _di.call(this,im,a*k,b*k,c*k,d*k,e,f,g,h)}return _di.apply(this,arguments)}}
 let P=[],S=[],B=[],D=[],ram=RMIN+30,F=0,shake=0,down=0,up=0,acc=0,lastT=0,muted=false;
 
 // material properties: k stiffness, ten = tensile break strain, yl = yield strain, fl = plastic flow, jc juice, du dust, gl glass
@@ -986,7 +987,7 @@ function drawBodies(withBonds,noShadow){
  for(const g of PG){cx.fillStyle=g[0];cx.beginPath();let n=0;for(const p of g[1]){const R=p.r*1.12;cx.moveTo(p.x+R,p.y);cx.arc(p.x,p.y,R,0,7);if(++n>=800){cx.fill();cx.beginPath();n=0}}cx.fill()}
 }
 function draw(){
- if(SS){drawSS();return}cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,W,H);
+ if(SS){drawSS();return}cx.setTransform(K,0,0,K,0,0);cx.clearRect(0,0,W,H);
  drawBg();
  const sh=shake>.05?[(Math.random()-.5)*shake,(Math.random()-.5)*shake]:[0,0];cx.translate(sh[0],sh[1]);
  // bed
@@ -1019,7 +1020,7 @@ function draw(){
    cx.fillStyle=`hsla(${c[0]},${c[1]}%,${c[2]}%,${dclosed?.7:.2})`;cx.fill();
    cx.strokeStyle=`hsl(${c[0]},${Math.max(c[1],30)}%,${Math.min(c[2]+20,85)}%)`;cx.lineWidth=3;cx.lineJoin='round';cx.stroke()}
   else{cx.fillStyle='#8b919b';cx.font='15px system-ui';cx.textAlign='center';cx.fillText('Draw a shape here',W/2,H/2)}}
- cx.setTransform(1,0,0,1,0,0);
+ cx.setTransform(K,0,0,K,0,0);
 }
 
 const fvE=document.getElementById('fv'),fbE=document.querySelector('#fb i'),subE=document.getElementById('sub');let hvT='',hwT='',hsT='';
@@ -1268,7 +1269,7 @@ function ropeStep(){
  for(const p of ps){p.x+=mx;p.y+=my;if(w.charge>0){p.ox=p.x;p.oy=p.y}}
 }
 // ---- site scene: parallax city, working cranes, fence, ground, weather and night lighting ----
-const LAY={};function layer(key,w,h,fn){let c=LAY[key];if(!c){c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);LAY[key]=c}return c}
+const LAY={};function layer(key,w,h,fn){let c=LAY[key];if(!c){c=document.createElement('canvas');const q=Math.min(K,1.5);c.width=Math.round(w*q);c.height=Math.round(h*q);c._k=q;{const g=c.getContext('2d');g.scale(q,q);fn(g,w,h)}LAY[key]=c}return c}
 const PAL=[
  {sky:['#4f9fe0','#9fd0f0','#eaf5ee'],far:'#8fb0c8',mid:'#6f9a7e',gnd:'#9a8466',amb:null,cr:'#d9a21b'},
  {sky:['#2c3e7a','#d9707a','#ffc47a'],far:'#6a5a80',mid:'#4a5a52',gnd:'#7e6850',amb:'rgba(255,140,60,.10)',cr:'#c98a1a'},
@@ -1314,14 +1315,14 @@ function drawGantry(t){
  else{g=cx.createLinearGradient(hx-12,0,hx+12,0);g.addColorStop(0,RD[0]);g.addColorStop(.4,RD[1]);g.addColorStop(1,RD[2]);cx.fillStyle=g;cx.fillRect(hx-12,64,24,Math.max(0,ram-26-64))}
  cx.save();cx.translate(hdx,0);drawHead();cx.restore()}
 function drawSite(){
- cx.setTransform(1,0,0,1,0,0);const k=TDK(),vw=W/Z,vh=H/Z,t=performance.now()/1000;camx=cl(hx-vw/2,0,WW-vw);const PL_=PAL[k];
+ cx.setTransform(K,0,0,K,0,0);const k=TDK(),vw=W/Z,vh=H/Z,t=performance.now()/1000;camx=cl(hx-vw/2,0,WW-vw);const PL_=PAL[k];
  let g=cx.createLinearGradient(0,0,0,H*.84);g.addColorStop(0,PL_.sky[0]);g.addColorStop(.55,PL_.sky[1]);g.addColorStop(1,PL_.sky[2]);cx.fillStyle=g;cx.fillRect(0,0,W,H);
  if(k===2){cx.fillStyle='#fff';for(let i=0;i<70;i++){cx.globalAlpha=.35+.65*(.5+.5*Math.sin(t*1.7+i*5));cx.fillRect((n1(i,1)*W+(-camx*.02)%W+W)%W,n1(i,2)*H*.55,i%4?1:2,i%4?1:2)}cx.globalAlpha=1;
   const mg=cx.createRadialGradient(290,80,4,290,80,60);mg.addColorStop(0,'rgba(255,255,235,.35)');mg.addColorStop(1,'rgba(255,255,235,0)');cx.fillStyle=mg;cx.fillRect(220,10,140,140);cx.fillStyle='#f4f1dc';cx.beginPath();cx.arc(290,80,17,0,7);cx.fill();cx.fillStyle='rgba(0,0,0,.08)';cx.beginPath();cx.arc(284,76,4,0,7);cx.arc(296,87,3,0,7);cx.fill()}
  else if(k<3){const sy=k?H*.5:70,sg=cx.createRadialGradient(80,sy,6,80,sy,150);sg.addColorStop(0,k?'rgba(255,200,120,.9)':'rgba(255,250,210,.9)');sg.addColorStop(.25,k?'rgba(255,150,80,.35)':'rgba(255,240,170,.3)');sg.addColorStop(1,'rgba(255,200,120,0)');cx.fillStyle=sg;cx.fillRect(0,0,260,sy+160);cx.fillStyle=k?'#ffe0a8':'#fffbe0';cx.beginPath();cx.arc(80,sy,18,0,7);cx.fill()}
  cx.fillStyle=k===2?'rgba(60,70,120,.55)':k===3?'rgba(120,128,136,.9)':'rgba(255,255,255,.85)';
  for(let i=0;i<9;i++){const w=W+260,x=(((i*210+t*(5+i%3*3)-camx*.12)%w)+w)%w-130,y=40+((i*61)%150);cx.beginPath();cx.ellipse(x,y,48,14,0,0,7);cx.fill();cx.beginPath();cx.ellipse(x+26,y-8,28,13,0,0,7);cx.fill()}
- cx.setTransform(Z,0,0,Z,-camx*Z,-camy*Z);
+ cx.setTransform(Z*K,0,0,Z*K,-camx*Z*K,-camy*Z*K);
  cx.drawImage(layer('far'+k,WW,260,paintFar),camx*.65,FY-250);
  cx.drawImage(layer('mid'+k,WW,120,paintMid),camx*.4,FY-100);
  for(let i=0;i<4;i++)drawCraneFar(240+i*430-(camx*.4|0)*0+camx*.4,170+(i%2)*40,t*.25+i*1.7,k);
@@ -1340,7 +1341,7 @@ function drawSite(){
  if(k===3){cx.strokeStyle='rgba(190,205,225,.45)';cx.lineWidth=1;cx.beginPath();for(let i=0;i<110;i++){const x=camx+((n1(i,1)*vw+t*60)%vw),y=camy+((n1(i,2)*vh+t*900*(.7+n1(i,3)*.5))%vh);cx.moveTo(x,y);cx.lineTo(x-5,y+22)}cx.stroke()}
  for(const b of BL_){const kk=b.t/.5,rd=30+kk*b.r,gg=cx.createRadialGradient(b.x,b.y,0,b.x,b.y,rd);gg.addColorStop(0,'rgba(255,245,190,'+.9*(1-kk)+')');gg.addColorStop(.5,'rgba(255,140,40,'+.5*(1-kk)+')');gg.addColorStop(1,'rgba(255,80,0,0)');cx.fillStyle=gg;cx.beginPath();cx.arc(b.x,b.y,rd,0,7);cx.fill()}
  drawRockerSite();
- cx.setTransform(1,0,0,1,0,0)}
+ cx.setTransform(K,0,0,K,0,0)}
 function drawRockerSite(){}
 function drawSS(){drawSite()}
 // ---- tools & equipment ----
@@ -1500,7 +1501,7 @@ S1('sec','Hidden challenge','Something is waiting in the music...',()=>SV.st.sec
 if(SV.done.sec){const c=CH.find(x=>x.id==='sec');c.n='Encore!';c.d='Crush a drum kit almost flat'}
 const G3=(a,b,c)=>[a,b,c];
 const hs=i=>{const n=Math.sin(i*12.9898)*43758.5453;return n-Math.floor(n)};
-const SC={},stat=(k,fn)=>{if(!SC[k]){const c=document.createElement('canvas');c.width=W;c.height=H;fn(c.getContext('2d'));SC[k]=c}cx.drawImage(SC[k],0,0)};
+const SC={},stat=(k,fn)=>{if(!SC[k]){const c=document.createElement('canvas');c.width=Math.round(W*K);c.height=Math.round(H*K);c._k=K;{const g=c.getContext('2d');g.scale(K,K);fn(g)}SC[k]=c}cx.drawImage(SC[k],0,0)};
 const sStage=t=>{
  stat('stage',g=>{for(let x=0;x<W;x+=14){g.fillStyle=(x/14)%2?'#4a0f22':'#2e0715';g.fillRect(x,0,14,330)}
   g.fillStyle='#0d0710';g.fillRect(0,64,W,14);g.strokeStyle='#2a2430';g.lineWidth=2;g.beginPath();for(let x=0;x<W;x+=14){g.moveTo(x,64);g.lineTo(x+7,78);g.lineTo(x+14,64)}g.stroke();
@@ -1611,7 +1612,7 @@ function apply(){const g=c=>{for(const it of SH[c].it)if(it[0]===SV.eq[c])return
 function pal(){if(!PL.rb)return PL;const h=(performance.now()/25)%360;return{c:'hsl('+h+',55%,30%)',k:['hsl('+h+',55%,24%)','hsl('+h+',70%,58%)','hsl('+h+',60%,14%)']}}
 const BGM=new Map();
 function drawBg(){const b=BGc;let c=BGM.get(b);
- if(!c){c=document.createElement('canvas');c.width=W;c.height=H;const k=c.getContext('2d'),g=k.createLinearGradient(0,0,0,H);g.addColorStop(0,b.a);g.addColorStop(1,b.b);k.fillStyle=g;k.fillRect(0,0,W,H);
+ if(!c){c=document.createElement('canvas');c.width=Math.round(W*K);c.height=Math.round(H*K);c._k=K;const k=c.getContext('2d');k.scale(K,K);const g=k.createLinearGradient(0,0,0,H);g.addColorStop(0,b.a);g.addColorStop(1,b.b);k.fillStyle=g;k.fillRect(0,0,W,H);
   if(b.grid){k.strokeStyle=b.grid;k.lineWidth=1;k.beginPath();for(let i=0;i<=W;i+=24){k.moveTo(i,0);k.lineTo(i,H)}for(let j=0;j<=H;j+=24){k.moveTo(0,j);k.lineTo(W,j)}k.stroke()}BGM.set(b,c)}
  cx.drawImage(c,0,0);
  if(b.st){cx.fillStyle='#fff';for(let i=0;i<50;i++){cx.globalAlpha=.3+.7*(.5+.5*Math.sin(performance.now()/600+i*7));cx.fillRect((i*97)%W,(i*53)%FY,i%3?1:2,i%3?1:2)}cx.globalAlpha=1}
@@ -1760,7 +1761,7 @@ function drop(o){const ob=toObj(o);if(!ob){toast('Draw something first');return 
 // ---- UI ----
 const st=document.createElement('style');st.textContent=`#px{position:fixed;inset:0;z-index:56;background:#000c;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}#px[hidden]{display:none}
 #pxp{display:flex;gap:12px;background:var(--pn);border:1px solid var(--bd);border-radius:16px;padding:10px;max-width:100%;max-height:100%}
-#pxc{touch-action:none;display:block;flex:none;background:#1a1d22;border:1px solid var(--bd);border-radius:10px;aspect-ratio:1;width:min(calc(100vh - 44px),46vw);height:auto;align-self:flex-start}
+#pxc{image-rendering:pixelated;touch-action:none;display:block;flex:none;background:#1a1d22;border:1px solid var(--bd);border-radius:10px;aspect-ratio:1;width:min(calc(100vh - 44px),46vw);height:auto;align-self:flex-start}
 #pxr{display:flex;flex-direction:column;gap:8px;overflow-y:auto;width:min(360px,50vw);min-height:0;overscroll-behavior:contain}
 @media (max-aspect-ratio:1/1){#pxp{flex-direction:column;overflow-y:auto;width:min(100%,460px)}#pxc{width:100%}#pxr{width:auto;overflow:visible}}
 .pr{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pr h3{margin:0;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ac);flex:1}
@@ -1932,14 +1933,14 @@ window.tidy=()=>{const col=ui.col,n={nm:0,sp:0};let cur=null;for(const e of chip
 window.tidy();
 })();
 // ===== PRODUCTION LAYER: stability, settings, pause, accessibility, help, PWA =====
-var PAUSED=false,NOSAVE=0,LF=0,errT=0,lastSh=0;const VERSION='1.0.0';
+var PAUSED=false,NOSAVE=0,LF=0,errT=0,lastSh=0;const VERSION='2.0.0';
 function report(e){try{console.error(e)}catch(_){}if(Date.now()-errT>8000){errT=Date.now();try{toast('⚠️ Something went wrong, the game recovered')}catch(_){}}}
 function hap(){if(shake>lastSh+3&&SV.set.hap&&!muted&&navigator.vibrate)try{navigator.vibrate(Math.min(70,Math.round(shake*6)))}catch(_){}lastSh=shake}
 function loopFail(e){report(e);LF++;if(LF===5)try{reset()}catch(_){}if(LF===90)window.fatal&&window.fatal()}
 addEventListener('error',e=>report(e.error||e.message));addEventListener('unhandledrejection',e=>report(e.reason));
 (function(){
 const $=s=>document.querySelector(s);
-SV.set=Object.assign({vol:1,hap:1,rm:matchMedia('(prefers-reduced-motion: reduce)').matches?1:0,lh:0,tut:0},SV.set);const S=SV.set;
+SV.set=Object.assign({vol:1,hap:1,rm:matchMedia('(prefers-reduced-motion: reduce)').matches?1:0,lh:0,tut:0,gfx:1},SV.set);const S=SV.set;
 const mk=(id,h)=>{const e=document.createElement('div');e.id=id;e.className='sh';e.hidden=true;e.innerHTML='<div class="shp"><h3>'+h+'</h3></div>';e.addEventListener('pointerdown',ev=>{if(ev.target===e&&id!=='pz'&&id!=='fat')e.hidden=true});document.body.appendChild(e);return e};
 const btn=(p,t,f,c)=>{const b=document.createElement('button');b.className='tile'+(c?' '+c:'');b.textContent=t;b.onclick=f;p.appendChild(b);return b};
 const grid=p=>{const g=document.createElement('div');g.className='tg';p.appendChild(g);return g};
@@ -1948,18 +1949,25 @@ const pz=mk('pz','Paused');pz.style.zIndex=70;pz.firstChild.insertAdjacentHTML('
 function setPause(p){PAUSED=p;pz.hidden=!p;if(typeof ac!=='undefined'&&ac)try{p?ac.suspend():ac.resume()}catch(_){}if(!p)lastT=performance.now()}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)setPause(true)});
 // settings
-const apply=()=>{document.body.classList.toggle('lh',!!S.lh);document.body.classList.toggle('rm',!!S.rm);if(typeof master!=='undefined'&&master)master.gain.value=muted?0:MV*S.vol};
-const stg=mk('stg','Settings'),sp=stg.firstChild;
-const vl=document.createElement('label');vl.className='sl';vl.innerHTML='<span>Volume<output></output></span><input type="range" min="0" max="1" step="0.05">';const vi=vl.querySelector('input'),vo=vl.querySelector('output');vi.value=S.vol;const vf=()=>{S.vol=+vi.value;vo.textContent=Math.round(S.vol*100)+'%';apply()};vi.oninput=vf;vi.onchange=save;vf();sp.appendChild(vl);
+let kCap=2.5,rT=0,kT=0;
+function idealK(){const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H)||1;let k=Math.round(sc*(window.devicePixelRatio||1)*4)/4;k=Math.max(1,Math.min(3,kCap,k));while(W*H*k*k>2.3e6&&k>1)k-=.25;return k}
+function setK(nk){nk=Math.round(nk*100)/100;if(nk===K&&cv.width===Math.round(W*K))return;K=nk;cv.width=Math.round(W*K);cv.height=Math.round(H*K);
+ const t=document.createElement('canvas');t.width=sp.width;t.height=sp.height;t.getContext('2d').drawImage(sp,0,0);sp.width=Math.round(W*K);sp.height=Math.round(H*K);sx.setTransform(K,0,0,K,0,0);sx.drawImage(t,0,0,W,H);sp._k=K;
+ for(const k in SC)delete SC[k];for(const k in LAY)delete LAY[k];BGM.clear()}
+if(window.ResizeObserver)new ResizeObserver(()=>{clearTimeout(rT);rT=setTimeout(()=>setK(S.gfx?idealK():1),250)}).observe(cv);
+setInterval(()=>{if(S.gfx&&!PAUSED&&fpsAvg<36&&K>1.25&&Date.now()-kT>6000&&fpsAvg>0){kT=Date.now();kCap=Math.max(1,K-.5);setK(kCap)}},2000);
+const apply=()=>{setK(S.gfx?idealK():1);document.body.classList.toggle('lh',!!S.lh);document.body.classList.toggle('rm',!!S.rm);if(typeof master!=='undefined'&&master)master.gain.value=muted?0:MV*S.vol};
+const stg=mk('stg','Settings'),spn=stg.firstChild;
+const vl=document.createElement('label');vl.className='sl';vl.innerHTML='<span>Volume<output></output></span><input type="range" min="0" max="1" step="0.05">';const vi=vl.querySelector('input'),vo=vl.querySelector('output');vi.value=S.vol;const vf=()=>{S.vol=+vi.value;vo.textContent=Math.round(S.vol*100)+'%';apply()};vi.oninput=vf;vi.onchange=save;vf();spn.appendChild(vl);
 const tg1=grid(sp);const tog=(t,k)=>{const b=btn(tg1,t,()=>{S[k]=S[k]?0:1;b.classList.toggle('on',!!S[k]);b.setAttribute('aria-pressed',!!S[k]);apply();save()});b.classList.toggle('on',!!S[k]);b.setAttribute('aria-pressed',!!S[k])};
-tog('📳 Haptics','hap');tog('🌀 Reduce motion','rm');tog('✋ Left-handed layout','lh');
-sp.insertAdjacentHTML('beforeend','<h3>Your data</h3>');const tg2=grid(sp);
+tog('✨ Sharp graphics','gfx');tog('📳 Haptics','hap');tog('🌀 Reduce motion','rm');tog('✋ Left-handed layout','lh');
+spn.insertAdjacentHTML('beforeend','<h3>Your data</h3>');const tg2=grid(sp);
 const dl=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(SV)],{type:'application/json'}));a.download='hydraulic-press-save.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
 btn(tg2,'⬇ Export save',dl);const fi=document.createElement('input');fi.type='file';fi.accept='.json,application/json';fi.hidden=true;document.body.appendChild(fi);
 btn(tg2,'⬆ Import save',()=>{fi.value='';fi.click()});
 fi.onchange=async()=>{const f=fi.files&&fi.files[0];if(!f)return;try{const j=JSON.parse(await f.text());if(!j||typeof j!=='object'||!Number.isFinite(j.pts)||!j.st)throw 0;if(!confirm('Replace your current progress and drawings with this save?'))return;NOSAVE=1;localStorage.setItem(LS,JSON.stringify(j));location.reload()}catch(e){NOSAVE=0;toast('That is not a valid save file')}};
 btn(tg2,'🗑 Reset progress',()=>{if(!confirm('Erase ALL progress, unlocks and drawings on this device? This cannot be undone.'))return;NOSAVE=1;try{localStorage.removeItem(LS)}catch(_){}location.reload()});
-btn(sp,'Close',()=>{stg.hidden=true});
+btn(spn,'Close',()=>{stg.hidden=true});
 // help + about
 const hlp=mk('hlp','How to play'),hp=hlp.firstChild;hp.insertAdjacentHTML('beforeend','<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;line-height:1.4"><li><b>Pick an object</b> from the list at the bottom of the screen.</li><li><b>Hold PRESS</b> (or the Space key) to crush it. RAISE lifts the press. Different press heads give different results.</li><li><b>Earn ◆</b> for goals and use them in the Shop to unlock upgrades.</li><li>Open <b>☰ Menu</b> for the Construction Site, the Pixel studio where you can draw or import your own objects, and the Sandbox to change gravity, speed and more.</li></ol><div class="d">Tip: tap a group name in the object list to fold it away.</div>');btn(hp,'Got it',()=>{hlp.hidden=true},'on');
 const abt=mk('abt','About'),ap=abt.firstChild;ap.insertAdjacentHTML('beforeend','<div><b>Hydraulic Press Sim</b> v'+VERSION+'</div><div class="d">Privacy: this game collects no personal data and makes no network requests for tracking. Progress, settings and your drawings are stored only on this device, in your browser\'s local storage. Use Settings → Export save to back them up.</div><div class="d">Built with HTML5 canvas and Web Audio. All graphics and sounds are generated in code.</div>');btn(ap,'Close',()=>{abt.hidden=true});
