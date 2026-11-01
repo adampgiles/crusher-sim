@@ -976,8 +976,8 @@ function upd(dt){dt*=SBX.ts;
 // batched body rendering: cached shadow sprites, bonds and particles grouped by colour
 const SHS=new Map();let gP=null,gN=-1,PG=[],gS=null,gSN=-1,SG=[];
 function shSpr(r){const k=Math.round(r*100);let s=SHS.get(k);if(!s){const R=k/100*1.3,n=Math.ceil(R*2)+4;s=document.createElement('canvas');s.width=s.height=n;const g=s.getContext('2d');g.fillStyle='#000a';g.beginPath();g.arc(n/2,n/2,R,0,7);g.fill();SHS.set(k,s)}return s}
-function drawBodies(withBonds){
- for(const p of P){if(p.hid)continue;const s=p.ss||(p.ss=shSpr(p.r)),h=s.width/2;cx.drawImage(s,p.x-h,p.y-h)}
+function drawBodies(withBonds,noShadow){
+ if(!noShadow)for(const p of P){if(p.hid)continue;const s=p.ss||(p.ss=shSpr(p.r)),h=s.width/2;cx.drawImage(s,p.x-h,p.y-h)}
  if(withBonds){
   if(gS!==S||gSN!==S.length){gS=S;gSN=S.length;const m=new Map();for(const q of S){const a=q.a;if(q.dead||a.hid||q.L0>a.s*1.2)continue;const k=a.col+'|'+a.r;let g=m.get(k);if(!g){g={c:a.col,w:a.r*2.2,l:[]};m.set(k,g)}g.l.push(q)}SG=[...m.values()]}
   cx.lineCap='round';
@@ -1108,8 +1108,7 @@ function drawHead(){
  for(const pg of HEAD.polys){cx.beginPath();pg.v.forEach((v,i)=>i?cx.lineTo(v[0],ram+v[1]):cx.moveTo(v[0],ram+v[1]));cx.closePath();
   const g=cx.createLinearGradient(0,ram+pg.y0,0,ram+pg.y1);g.addColorStop(0,HC[0]);g.addColorStop(1,pg.tip?HC[2]:HC[1]);
   cx.fillStyle=g;cx.fill();cx.strokeStyle='#1c1f24';cx.lineWidth=1;cx.stroke()}
- if(HEAD.hole){const hl=HEAD.hole;cx.save();cx.beginPath();cx.rect(hl[0]-6,64,hl[1]-hl[0]+12,H);cx.clip();cx.translate(-hdx,0);
-  drawBodies(0);cx.restore()}
+
 }
 const hds=document.getElementById('hds');
 function setHead(k){ev('head',k);HEAD={k,polys:HEADS[k].mk().map(g=>mkp(g.v.map(q=>[q[0]===XL?XL-4:q[0]===XR?XR+4:q[0],q[1]]),g.tip)),hole:HEADS[k].hole,cut:HEADS[k].cut};HD=HEADS[k].d;RMAX=HEADS[k].rim?FY+26:FY;let mn=1e9;for(const p of P)mn=Math.min(mn,p.y-p.r);
@@ -1965,7 +1964,9 @@ btn(sp,'Close',()=>{stg.hidden=true});
 const hlp=mk('hlp','How to play'),hp=hlp.firstChild;hp.insertAdjacentHTML('beforeend','<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;line-height:1.4"><li><b>Pick an object</b> from the list at the bottom of the screen.</li><li><b>Hold PRESS</b> (or the Space key) to crush it. RAISE lifts the press. Different press heads give different results.</li><li><b>Earn ◆</b> for goals and use them in the Shop to unlock upgrades.</li><li>Open <b>☰ Menu</b> for the Construction Site, the Pixel studio where you can draw or import your own objects, and the Sandbox to change gravity, speed and more.</li></ol><div class="d">Tip: tap a group name in the object list to fold it away.</div>');btn(hp,'Got it',()=>{hlp.hidden=true},'on');
 const abt=mk('abt','About'),ap=abt.firstChild;ap.insertAdjacentHTML('beforeend','<div><b>Hydraulic Press Sim</b> v'+VERSION+'</div><div class="d">Privacy: this game collects no personal data and makes no network requests for tracking. Progress, settings and your drawings are stored only on this device, in your browser\'s local storage. Use Settings → Export save to back them up.</div><div class="d">Built with HTML5 canvas and Web Audio. All graphics and sounds are generated in code.</div>');btn(ap,'Close',()=>{abt.hidden=true});
 // menu tiles
-const mg=$('#mnu .tg');btn(mg,'⏸ Pause',()=>setPause(true));btn(mg,'🛠 Settings',()=>{stg.hidden=false});btn(mg,'❓ How to play',()=>{hlp.hidden=false});btn(mg,'ℹ️ About',()=>{abt.hidden=false});
+const mg=$('#mnu .tg');btn(mg,'⏸ Pause',()=>setPause(true));const de=document.documentElement,fsReq=de.requestFullscreen||de.webkitRequestFullscreen,fsExit=document.exitFullscreen||document.webkitExitFullscreen,isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+if(!matchMedia('(display-mode: standalone)').matches&&!matchMedia('(display-mode: fullscreen)').matches){const ft=btn(mg,'⛶ Fullscreen',()=>{if(!fsReq){toast('Fullscreen is not available here. Use Share → Add to Home Screen instead');return}try{const r=isFs()?fsExit.call(document):fsReq.call(de,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>toast('Fullscreen was blocked by the browser'))}catch(e){toast('Fullscreen was blocked by the browser')}}),fu=()=>{ft.textContent=isFs()?'⛶ Exit fullscreen':'⛶ Fullscreen'};document.addEventListener('fullscreenchange',fu);document.addEventListener('webkitfullscreenchange',fu)}
+btn(mg,'🛠 Settings',()=>{stg.hidden=false});btn(mg,'❓ How to play',()=>{hlp.hidden=false});btn(mg,'ℹ️ About',()=>{abt.hidden=false});
 const it=btn(mg,'📲 Install app',()=>{if(dip){dip.prompt();dip=null;it.hidden=true}});it.hidden=true;let dip=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;it.hidden=false});
 // fatal error screen
 const fat=mk('fat','Something went wrong');fat.style.zIndex=80;fat.firstChild.insertAdjacentHTML('beforeend','<div class="d">The game hit a problem it could not recover from. Your saved progress is safe.</div>');btn(fat.firstChild,'↻ Reload',()=>location.reload(),'on');window.fatal=()=>{fat.hidden=false};
