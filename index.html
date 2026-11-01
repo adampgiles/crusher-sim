@@ -1772,6 +1772,97 @@ function figure(c,bt){
  c.restore();c.restore();
  c.font='bold 15px system-ui';c.textAlign='center';
  for(let k=0;k<6;k++){const a=(bt*.35+k/6)%1;c.fillStyle='hsla('+(k*60)+',90%,65%,'+(1-a)+')';c.fillText(k%2?'♪':'♫',40+((k*17)%34)+Math.sin(a*7+k)*7,-10-a*80)}}
+// ===== PIXEL STUDIO: draw, save and reuse your own objects =====
+(function(){
+const MT=[null,['Glass','glass','#8ccdea'],['Stone','stone','#8f8a82'],['Wood','wood','#a8763e'],['Metal','metal','#c3c8d0'],['Steel','steel','#6c7a8c'],['Rubber','rubber','#d44a4a'],['Jelly','jelly','#6ad07a'],['Ceramic','ceramic','#e8e4da'],['Paper','paper','#f1ead2'],['Candy','candy','#ff7ab6'],['Brick','brick','#b4492f'],['Concrete','concrete','#b0b3b8'],['Goo','goo','#e8c84a'],['Flesh','flesh','#e0605a']];
+const PAL0=['#000000','#3a3a40','#7b7f88','#c3c8d0','#ffffff','#7a1f1f','#d83a2e','#ff8a1f','#f2c230','#fff1a8','#4a8a2a','#4ab36b','#9ad65a','#1c5a8a','#2f7be0','#7cc4ff','#5a2d8a','#c067e0','#ff7ab6','#4a2f1d','#7a4a26','#c58a50','#e8b38c','#f6d9c0'];
+if(!SV.lib)SV.lib=[];if(!SV.pxpal)SV.pxpal=[];
+const h2n=h=>parseInt(h.slice(1),16),n2h=n=>'#'+(n&0xffffff).toString(16).padStart(6,'0'),HC=new Map();
+function hsl(n){let v=HC.get(n);if(v)return v;const r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;if(d){s=d/(1-Math.abs(2*l-1));h=mx===r?((g-b)/d+6)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h*=60}v=[h,s*100,l*100];HC.set(n,v);return v}
+let D,tool='pen',cm=1,cc=h2n('#d83a2e'),mode=0,mir=0,grid=1,mv=0,down=0,last=null,start=null,prev=null,U=[];
+const newD=N=>({N,mat:new Uint8Array(N*N),col:new Uint32Array(N*N),hol:0,name:'',id:null});
+const dump=()=>({id:D.id,name:D.name,N:D.N,hol:D.hol,m:Array.from(D.mat),c:Array.from(D.col)});
+function loadD(o){if(!o||!o.N||!o.m||o.m.length!==o.N*o.N){D=newD(24);return}D={N:o.N,mat:Uint8Array.from(o.m),col:Uint32Array.from(o.c),hol:o.hol|0,name:o.name||'',id:o.id||null}}
+loadD(SV.pxd);
+const keep=()=>{SV.pxd=dump();save()};
+function obj(d){const N=d.N;let x0=N,x1=-1,y0=N,y1=-1,n=0;for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(d.m[r*N+c]){n++;x0=Math.min(x0,c);x1=Math.max(x1,c);y0=Math.min(y0,r);y1=Math.max(y1,r)}
+ if(!n)return null;const w=x1-x0+1,h=y1-y0+1,M=Math.max(w,h),cell=Math.max(4,Math.min(9,190/M)),ox=x0-Math.floor((M-w)/2),oy=y0-Math.floor((M-h)/2),half=M*cell/2;
+ const at=(x,y)=>{const c=Math.floor((x+half)/cell)+ox,r=Math.floor((y+half)/cell)+oy;return(c>=0&&c<N&&r>=0&&r<N)?r*N+c:-1};
+ return{n:d.name||'My drawing',e:'🎨',s:cell/(SS?.5:.65),hb:half,R:half-cell/2+.01,hol:d.hol?2.2:0,f:(x,y)=>{const i=at(x,y);return i>=0&&d.m[i]>0},c:(x,y)=>{const i=at(x,y),h=hsl(d.c[i]);return[h[0],h[1],h[2],MT[d.m[i]][1]]}}}
+const toObj=o=>obj({N:o.N,hol:o.hol,name:o.name,m:o.m||o.mat,c:o.c||o.col});
+function drop(o){const ob=toObj(o);if(!ob){toast('Draw something first');return false}O.custom=ob;INFO.custom='your own pixel creation';if(SS)spawnSS('custom');else{ob.at=null;spawn('custom')}return true}
+// ---- UI ----
+const st=document.createElement('style');st.textContent=`#px{position:fixed;inset:0;z-index:56;background:#000c;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}#px[hidden]{display:none}
+#pxp{display:flex;gap:12px;background:var(--pn);border:1px solid var(--bd);border-radius:16px;padding:10px;max-width:100%;max-height:100%}
+#pxc{touch-action:none;display:block;flex:none;background:#1a1d22;border:1px solid var(--bd);border-radius:10px;aspect-ratio:1;width:min(calc(100vh - 44px),46vw);height:auto;align-self:flex-start}
+#pxr{display:flex;flex-direction:column;gap:8px;overflow-y:auto;width:min(360px,50vw);min-height:0;overscroll-behavior:contain}
+@media (max-aspect-ratio:1/1){#pxp{flex-direction:column;overflow-y:auto;width:min(100%,460px)}#pxc{width:100%}#pxr{width:auto;overflow:visible}}
+.pr{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pr h3{margin:0;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ac);flex:1}
+.pl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+#pxr button{border:1px solid var(--bd);background:var(--pn2);color:var(--fg);border-radius:999px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer}
+#pxr button.sel{background:var(--ac);color:var(--acf);border-color:var(--ac)}#pxr button.pri{background:linear-gradient(#f7b92a,#e29a00);color:var(--acf);border-color:#c98900;flex:1}
+#pxr button.sw{width:26px;height:26px;border-radius:6px;padding:0;border:2px solid var(--bd)}#pxr button.sw.sel{border-color:#fff;box-shadow:0 0 0 2px var(--ac)}
+#pxr i.t{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+#pxn{flex:1;min-width:0;background:var(--pn2);color:var(--fg);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;font-size:13px;user-select:text;-webkit-user-select:text}
+.gi{position:relative;width:60px;text-align:center;font-size:10px;color:var(--mut)}.gi canvas{width:56px;height:56px;border:1px solid var(--bd);border-radius:8px;background:#1a1d22;display:block;cursor:pointer}.gi.sel canvas{border-color:var(--ac)}.gi span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pxr .gi button{position:absolute;top:-4px;right:-4px;width:18px;height:18px;padding:0;font-size:10px;border-radius:50%}`;document.head.appendChild(st);
+const el=document.createElement('div');el.id='px';el.hidden=true;
+el.innerHTML='<div id="pxp"><canvas id="pxc" width="512" height="512"></canvas><div id="pxr"><div class="pr"><h3>Pixel studio</h3><span id="pxz" class="pr"></span></div><div class="pr" id="pxt"></div><div class="pr" id="pxo"></div><div class="pl">Colour</div><div class="pr" id="pxpl"></div><div class="pl">Material (decides how it breaks)</div><div class="pr" id="pxm"></div><div class="pr"><button id="pxu">↶ Undo</button><button id="pxcl">Clear</button><button id="pxnw">New</button></div><div class="pr"><input id="pxn" placeholder="Name your drawing" maxlength="24"><button id="pxsv">💾 Save</button></div><div class="pl">My drawings</div><div class="pr" id="pxg"></div><div class="pr"><button id="pxx">Close</button><button id="pxd" class="pri">Drop it</button></div></div></div>';
+document.body.appendChild(el);
+const $=s=>el.querySelector(s),cv2=$('#pxc'),g=cv2.getContext('2d'),nm=$('#pxn');
+nm.addEventListener('keydown',e=>e.stopPropagation());nm.addEventListener('keyup',e=>e.stopPropagation());
+const mk=(p,t,f,c)=>{const b=document.createElement('button');b.innerHTML=t;b.onclick=f;if(c)b.className=c;p.appendChild(b);return b};
+const TL=[['pen','✏️ Pen'],['er','🧽 Erase'],['fill','🪣 Fill'],['line','╱ Line'],['rect','▭ Rect'],['box','■ Box'],['pick','💧 Pick']],tb={};
+for(const[k,t]of TL)tb[k]=mk($('#pxt'),t,()=>{tool=k;sync()});
+const bm=mk($('#pxo'),'',()=>{mode=(mode+1)%3;sync()}),bmi=mk($('#pxo'),'Mirror',()=>{mir=!mir;sync()}),bg=mk($('#pxo'),'Grid',()=>{grid=!grid;sync()}),bv=mk($('#pxo'),'Material view',()=>{mv=!mv;sync()}),bh=mk($('#pxo'),'Hollow',()=>{D.hol=D.hol?0:1;sync()});
+const zb={};for(const n of[16,24,32])zb[n]=mk($('#pxz'),n+'²',()=>{const o=D;U.push(snap());D=newD(n);const k=Math.min(n,o.N);for(let r=0;r<k;r++)for(let c=0;c<k;c++){D.mat[r*n+c]=o.mat[r*o.N+c];D.col[r*n+c]=o.col[r*o.N+c]}D.hol=o.hol;D.name=o.name;D.id=o.id;sync()});
+const ci=document.createElement('input');ci.type='color';ci.style.cssText='width:30px;height:28px;padding:0;border:0;background:none';
+ci.oninput=()=>{cc=h2n(ci.value);sync()};ci.onchange=()=>{if(!PAL0.includes(ci.value)&&!SV.pxpal.includes(ci.value)){SV.pxpal.push(ci.value);if(SV.pxpal.length>16)SV.pxpal.shift();save();palBuild()}};
+function palBuild(){const p=$('#pxpl');p.innerHTML='';for(const h of PAL0.concat(SV.pxpal)){const b=mk(p,'',()=>{cc=h2n(h);ci.value=h;sync()},'sw');b.style.background=h;b.dataset.h=h}p.appendChild(ci)}
+const mb=[];for(let i=1;i<MT.length;i++)mb[i]=mk($('#pxm'),'<i class="t" style="background:'+MT[i][2]+'"></i>'+MT[i][0],()=>{cm=i;sync()});
+function sync(){for(const k in tb)tb[k].classList.toggle('sel',k===tool);bm.textContent=['Brush: colour + material','Brush: colour only','Brush: material only'][mode];bmi.classList.toggle('sel',!!mir);bg.classList.toggle('sel',!!grid);bv.classList.toggle('sel',!!mv);bh.classList.toggle('sel',!!D.hol);
+ for(const n in zb)zb[n].classList.toggle('sel',+n===D.N);for(let i=1;i<mb.length;i++)mb[i].classList.toggle('sel',i===cm);for(const b of $('#pxpl').children)if(b.dataset.h)b.classList.toggle('sel',h2n(b.dataset.h)===cc);ci.value=n2h(cc);nm.value=D.name;draw();galSel()}
+function draw(){const N=D.N,s=512/N;g.clearRect(0,0,512,512);
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++){const i=r*N+c,m=D.mat[i];g.fillStyle=((r+c)&1)?'#20242b':'#1a1d22';g.fillRect(c*s,r*s,s,s);if(m){g.fillStyle=mv?MT[m][2]:n2h(D.col[i]);g.fillRect(c*s,r*s,s,s)}}
+ if(prev){g.globalAlpha=.75;g.fillStyle=tool==='er'?'#fff':n2h(cc);for(const[c,r]of prev)g.fillRect(c*s,r*s,s,s);g.globalAlpha=1}
+ if(grid){g.strokeStyle='rgba(255,255,255,.09)';g.lineWidth=1;g.beginPath();for(let i=0;i<=N;i++){g.moveTo(i*s,0);g.lineTo(i*s,512);g.moveTo(0,i*s);g.lineTo(512,i*s)}g.stroke()}
+ if(mir){g.strokeStyle='#f2a900';g.setLineDash([6,5]);g.beginPath();g.moveTo(256,0);g.lineTo(256,512);g.stroke();g.setLineDash([])}}
+// ---- drawing ops ----
+const snap=()=>({N:D.N,mat:D.mat.slice(),col:D.col.slice(),hol:D.hol});
+function put(c,r,er){const N=D.N;if(c<0||r<0||c>=N||r>=N)return;const i=r*N+c;if(er||tool==='er'){D.mat[i]=0;D.col[i]=0;return}
+ if(mode===0){D.mat[i]=cm;D.col[i]=cc}else if(D.mat[i]){if(mode===1)D.col[i]=cc;else D.mat[i]=cm}}
+function putAll(l){for(const[c,r]of l){put(c,r);if(mir)put(D.N-1-c,r)}}
+function bres(a,b){const o=[];let x=a[0],y=a[1];const dx=Math.abs(b[0]-x),dy=-Math.abs(b[1]-y),sx=x<b[0]?1:-1,sy=y<b[1]?1:-1;let e=dx+dy;for(;;){o.push([x,y]);if(x===b[0]&&y===b[1])break;const e2=2*e;if(e2>=dy){e+=dy;x+=sx}if(e2<=dx){e+=dx;y+=sy}}return o}
+function shape(a,b){if(tool==='line')return bres(a,b);const o=[],x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0]),y0=Math.min(a[1],b[1]),y1=Math.max(a[1],b[1]);for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(tool==='box'||x===x0||x===x1||y===y0||y===y1)o.push([x,y]);return o}
+function flood(c,r){const N=D.N,i0=r*N+c,m0=D.mat[i0],c0=D.col[i0],er=false;if(m0===(mode===0?cm:m0)&&c0===cc&&mode===0)return;const q=[i0],seen=new Uint8Array(N*N);seen[i0]=1;while(q.length){const i=q.pop(),x=i%N,y=(i/N)|0;put(x,y);if(mir)put(N-1-x,y);for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=N||Y>=N)continue;const j=Y*N+X;if(!seen[j]&&D.mat[j]===m0&&D.col[j]===c0){seen[j]=1;q.push(j)}}}}
+const cell=e=>{const r=cv2.getBoundingClientRect(),N=D.N;return[Math.max(0,Math.min(N-1,Math.floor((e.clientX-r.left)/r.width*N))),Math.max(0,Math.min(N-1,Math.floor((e.clientY-r.top)/r.height*N)))]};
+cv2.addEventListener('pointerdown',e=>{e.preventDefault();cv2.setPointerCapture(e.pointerId);U.push(snap());if(U.length>40)U.shift();down=1;const p=cell(e);
+ if(tool==='pick'){const i=p[1]*D.N+p[0];if(D.mat[i]){cm=D.mat[i];cc=D.col[i]}down=0;U.pop();tool='pen'}
+ else if(tool==='fill'){flood(p[0],p[1]);down=0}
+ else if(tool==='pen'||tool==='er'){putAll([p]);last=p}else{start=p;prev=[p]}sync()});
+cv2.addEventListener('pointermove',e=>{if(!down)return;const p=cell(e);if(tool==='pen'||tool==='er'){putAll(bres(last,p));last=p}else prev=shape(start,p);draw()});
+const up=()=>{if(!down)return;down=0;if(prev){putAll(prev);prev=null}last=null;draw();keep()};cv2.addEventListener('pointerup',up);cv2.addEventListener('pointercancel',up);
+$('#pxu').onclick=()=>{const s=U.pop();if(!s)return;D.N=s.N;D.mat=s.mat;D.col=s.col;D.hol=s.hol;sync();keep()};
+$('#pxcl').onclick=()=>{U.push(snap());D.mat.fill(0);D.col.fill(0);sync();keep()};
+$('#pxnw').onclick=()=>{U.push(snap());D=newD(D.N);sync();keep()};
+function save1(){if(!D.mat.some(x=>x)){toast('Draw something first');return}D.name=nm.value.trim()||D.name||'Drawing '+(SV.lib.length+1);const o=dump(),i=SV.lib.findIndex(x=>x.id===D.id);
+ if(i>=0)SV.lib[i]=o;else{if(SV.lib.length>=40){toast('Library full, delete one first');return}D.id=o.id=Date.now().toString(36);SV.lib.push(o)}keep();gal();mine();sync();toast('💾 Saved to My drawings')}
+$('#pxsv').onclick=save1;
+function thumb(c,o){const N=o.N,x=c.getContext('2d'),s=c.width/N;x.clearRect(0,0,c.width,c.height);for(let i=0;i<N*N;i++)if(o.m[i]){x.fillStyle=n2h(o.c[i]);x.fillRect((i%N)*s,((i/N)|0)*s,s+.5,s+.5)}}
+function gal(){const p=$('#pxg');p.innerHTML='';if(!SV.lib.length){p.innerHTML='<span class="d">Nothing saved yet.</span>';return}
+ for(const o of SV.lib){const d=document.createElement('div');d.className='gi';d.dataset.id=o.id;const c=document.createElement('canvas');c.width=c.height=56;thumb(c,o);c.onclick=()=>{U.push(snap());loadD(o);sync();keep()};d.appendChild(c);const s=document.createElement('span');s.textContent=o.name;d.appendChild(s);
+  const x=document.createElement('button');x.textContent='✕';x.onclick=ev2=>{ev2.stopPropagation();if(!confirm('Delete "'+o.name+'"?'))return;SV.lib=SV.lib.filter(z=>z.id!==o.id);if(D.id===o.id)D.id=null;save();gal();mine()};d.appendChild(x);p.appendChild(d)}}
+function galSel(){for(const d of $('#pxg').children)d.classList&&d.classList.toggle('sel',d.dataset.id===D.id)}
+$('#pxx').onclick=()=>{keep();el.hidden=true};
+$('#pxd').onclick=()=>{keep();if(drop(dump())){el.hidden=true;ev('draw');if(!D.id)toast('Tip: 💾 Save it to use it again later')}};
+el.addEventListener('pointerdown',e=>{if(e.target===el){keep();el.hidden=true}});
+// ---- saved drawings as quick-spawn chips ----
+function mine(){for(const e of[...chips.querySelectorAll('.mine')])e.remove();if(!SV.lib.length)return;
+ const build=cls=>{const a=[],l=document.createElement('span');l.className='gl mine '+cls;l.textContent='My drawings';a.push(l);for(const o of SV.lib){const b=document.createElement('button');b.className='mine '+cls;b.textContent='🎨 '+o.name;b.onclick=()=>{initAudio();drop(o)};a.push(b)}return a};
+ const f=document.createDocumentFragment();for(const e of build('nm'))f.appendChild(e);chips.insertBefore(f,dchip.nextSibling);for(const e of build('sp'))chips.appendChild(e)}
+dchip.textContent='🎨 Draw';dchip.onclick=()=>{initAudio();el.hidden=false;sync()};
+palBuild();gal();mine();
+})();
 spawn('melon');
 requestAnimationFrame(loop);
 </script></body></html>
