@@ -74,22 +74,44 @@ canvas{grid-area:cv;display:block;width:100%;height:100%;min-width:0;min-height:
 body.ss #lf,body.ss #rt{display:block;flex:.6}
 body.ss .nm{display:none!important}
 body:not(.ss) .sp{display:none!important}
+#pick{display:contents}
 @media (min-aspect-ratio:1/1){
- body{grid-template-columns:minmax(290px,370px) minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr) auto auto;grid-template-areas:"hud cv" "sub cv" "hds cv" "chips cv" "dp cv" "ctl cv"}
- #sub{white-space:normal;border-top:0}
- #hds{flex-wrap:wrap;overflow-x:hidden}
- #chips{flex-wrap:wrap;align-content:flex-start;overflow-x:hidden;overflow-y:auto}
+ body{grid-template-columns:clamp(260px,36vw,380px) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"hud hud" "sub cv" "pick cv" "ctl cv"}
+ #hud{flex-wrap:nowrap;padding:6px 12px;gap:8px}
+ #hud b{font-size:11px}
+ #fb{min-width:60px}#fv{min-width:84px}
+ #sub{white-space:normal;border-top:0;min-height:0;padding:6px 12px;font-size:11px;line-height:1.25;max-height:3.4em;overflow:hidden}
+ #pick{display:flex;flex-direction:column;grid-area:pick;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--pn);border-top:1px solid var(--bd);scrollbar-width:thin}
+ #hds,#chips{grid-area:auto;flex-wrap:wrap;align-content:flex-start;overflow:visible;gap:6px;padding:8px 12px;border-top:0}
+ #hds+#chips{border-top:1px solid var(--bd)}
  #hds::before,#chips::before{flex-basis:100%;margin:0}
- #ctl{display:grid;grid-template-columns:1fr 1fr}
- #ctl #dn{grid-column:1/-1;order:-1;min-height:64px}
- #ctl #rs,#ctl #mu{flex:none}
+ .gl{flex-basis:100%;padding:6px 0 0}
+ #chips button,#hds button{padding:8px 11px;font-size:12px}
+ #ctl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+ #ctl button{min-height:40px;padding:0 4px;font-size:13px}
+ #ctl #dn{grid-column:1/-1;order:-1;min-height:48px}
+ #ctl #up{grid-column:span 2}
+ #ctl #rs,#ctl #mu{flex:none;grid-column:span 1;font-size:12px}
+ body.ss #ctl #rs,body.ss #ctl #mu{grid-column:span 2}
  canvas{border-left:1px solid var(--bd)}
- .gl{flex-basis:100%;padding:8px 0 0}
+ /* draw mode: the draw panel takes over the picker area */
+ body.dr #pick{display:none}
+ body.dr #dp{grid-area:pick;overflow-y:auto;min-height:0}
+ #dm{flex-wrap:wrap;overflow-x:visible}
+ #da{grid-template-columns:1fr 1fr}
 }
 @media (max-height:440px){
- #hud{padding:6px 12px}#sub{padding:5px 12px;min-height:26px}
- #hds,#chips{padding:7px 12px}#ctl{padding:8px 12px;gap:8px}#ctl button{min-height:42px}#ctl #dn{min-height:48px}
- #chips button,#hds button{padding:7px 11px;font-size:12px}
+ #hud{padding:4px 10px}#hud b{display:none}#ss,.hb{padding:5px 10px}
+ #sub{padding:4px 12px}
+ #hds,#chips{padding:6px 10px}
+ #ctl{padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px));gap:5px}
+ #ctl button{min-height:36px;border-radius:10px}#ctl #dn{min-height:44px}
+ #chips button,#hds button{padding:7px 10px;font-size:12px}
+ #dp{padding:8px 10px;gap:8px}#da button{padding:10px 4px}
+}
+/* portrait phones: tidy up short screens too */
+@media (max-aspect-ratio:1/1) and (max-height:700px){
+ #chips,#hds{padding:7px 12px}#ctl{padding:8px 12px}#ctl button{min-height:46px}
 }
 
 .hb{border:1px solid var(--bd);background:var(--pn2);color:var(--fg);border-radius:999px;padding:6px 12px;font-size:11px;font-weight:800;letter-spacing:.08em;cursor:pointer}
@@ -117,8 +139,7 @@ body:not(.ss) .sp{display:none!important}
 <div id="sub">Drag objects to move them, then hold PRESS.</div>
 <canvas id="c" width="360" height="520"></canvas>
 <div id="dp" hidden><div id="dm"></div><div id="da"><button id="dh">Hollow: off</button><button id="dcl">Clear</button><button id="dx">Cancel</button><button id="dd" class="pri">Drop it</button></div></div>
-<div id="chips" data-l="Objects"></div>
-<div id="hds" data-l="Press head"></div>
+<div id="pick"><div id="hds" data-l="Press head"></div><div id="chips" data-l="Objects"></div></div>
 <div id="ctl"><button id="up">▲ RAISE</button><button id="dn" class="pri">▼ PRESS</button><button id="lf">◀</button><button id="rt">▶</button><button id="rs">RESET</button><button id="mu">🔊</button></div>
 <div id="ov" hidden><div id="pn"><div id="ph"><button class="hb" data-t="g">🏆 GOALS</button><button class="hb" data-t="s">🛒 SHOP</button><span id="pp">◆ 0</span><button class="hb" id="cl">✕</button></div><div id="pb"></div></div></div><div id="toast"></div>
 <script>
@@ -1021,7 +1042,7 @@ let dOn=0,dpts=[],dclosed=0,dmat='glass',dhol=0,dDown=0;
 const dmEl=document.getElementById('dm'),dpEl=document.getElementById('dp'),subEl=document.getElementById('sub');
 function sel(){for(const b of dmEl.children)b.classList.toggle('sel',b.dataset.k===dmat)}
 for(const k in MC){const b=document.createElement('button');b.textContent=MN[k];b.dataset.k=k;b.onclick=()=>{dmat=k;sel()};dmEl.appendChild(b)}
-function dmode(on){dOn=on;dpEl.hidden=!on;chips.style.display=on?'none':'';document.getElementById('hds').style.display=on?'none':'';document.getElementById('ctl').style.display=on?'none':'';cv.style.touchAction='none';if(on){dpts=[];dclosed=0;sel();subEl.textContent='Draw inside the press area, pick a material'}}
+function dmode(on){dOn=on;document.body.classList.toggle('dr',!!on);dpEl.hidden=!on;chips.style.display=on?'none':'';document.getElementById('hds').style.display=on?'none':'';document.getElementById('ctl').style.display=on?'none':'';cv.style.touchAction='none';if(on){dpts=[];dclosed=0;sel();subEl.textContent='Draw inside the press area, pick a material'}}
 const dchip=document.createElement('button');dchip.textContent='✏️ Draw';dchip.className='nm';dchip.onclick=()=>{initAudio();dmode(1)};chips.insertBefore(dchip,chips.firstChild);
 function cpos(e){const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2;return{x:Math.min(XR-2,Math.max(XL+2,(e.clientX-ox)/sc)),y:Math.min(FY-1,Math.max(ram+HD+18,(e.clientY-oy)/sc))}}
 cv.addEventListener('pointerdown',e=>{if(!dOn)return;e.preventDefault();cv.setPointerCapture(e.pointerId);dpts=[cpos(e)];dclosed=0;dDown=1});
